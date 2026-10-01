@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="SimpleLibrary.API/SimpleLibrary.API.csproj" />
+  <Project Path="SimpleLibrary.Application/SimpleLibrary.Application.csproj" />
+  <Project Path="SimpleLibrary.Core/SimpleLibrary.Core.csproj" />
+  <Project Path="SimpleLibrary.DataAccess.Postgres/SimpleLibrary.DataAccess.Postgres.csproj" />
+</Solution>
