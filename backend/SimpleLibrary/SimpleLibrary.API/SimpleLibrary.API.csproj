@@ -15,10 +15,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Controllers\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\SimpleLibrary.Application\SimpleLibrary.Application.csproj" />
     <ProjectReference Include="..\SimpleLibrary.Core\SimpleLibrary.Core.csproj" />
     <ProjectReference Include="..\SimpleLibrary.DataAccess.Postgres\SimpleLibrary.DataAccess.Postgres.csproj" />
