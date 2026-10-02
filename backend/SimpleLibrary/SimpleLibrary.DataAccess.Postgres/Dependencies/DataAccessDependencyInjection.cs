@@ -1,6 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using SimpleLibrary.Core.Interfaces.Repositories;
+using SimpleLibrary.Core.Interfaces.UnitsOfWork;
+using SimpleLibrary.DataAccess.Postgres.Repositories;
+using SimpleLibrary.DataAccess.Postgres.UnitsOfWork;
 
 namespace SimpleLibrary.DataAccess.Postgres.Dependencies
 {
@@ -11,7 +15,8 @@ namespace SimpleLibrary.DataAccess.Postgres.Dependencies
             services.AddDbContext<LibraryDbContext>(options =>
                 options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
 
-            // services.AddScoped<, >();
+            services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
 
             return services;
         }
