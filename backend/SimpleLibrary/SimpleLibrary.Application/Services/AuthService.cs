@@ -20,7 +20,10 @@ namespace SimpleLibrary.Application.Services
 
         public async Task<ServiceResponse<User>> RegisterAsync(RegisterRequest request)
         {
-            var existingUser = await _unitOfWork.UserRepository.GetByEmailAsync(request.Email);
+            string email = NormalizeEmail(request.Email);
+            string fullName = request.FullName.Trim();
+
+            var existingUser = await _unitOfWork.UserRepository.GetByEmailAsync(email);
             if (existingUser != null)
             {
                 return ServiceResponse<User>.Fail("Користувач з таким Email вже існує.", ErrorType.Conflict);
@@ -28,7 +31,7 @@ namespace SimpleLibrary.Application.Services
 
             string passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
-            var newUser = new User(request.FullName, request.Email, passwordHash, UserRole.Reader);
+            var newUser = new User(fullName, email, passwordHash, UserRole.Reader);
 
             await _unitOfWork.UserRepository.AddAsync(newUser);
 
@@ -39,21 +42,26 @@ namespace SimpleLibrary.Application.Services
 
         public async Task<ServiceResponse<string>> AuthenticateAsync(LoginRequest request)
         {
-            var user = await _unitOfWork.UserRepository.GetByEmailAsync(request.Email);
+            string email = NormalizeEmail(request.Email);
+
+            var user = await _unitOfWork.UserRepository.GetByEmailAsync(email);
+
             if (user == null)
             {
-                return ServiceResponse<string>.Fail("Користувача з таким Email не знайдено.", ErrorType.NotFound);
+                return ServiceResponse<string>.Fail("Неправильний Email або пароль.", ErrorType.Unauthorized);
             }
 
             bool isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
             if (!isPasswordValid)
             {
-                return ServiceResponse<string>.Fail("Неправильний пароль.", ErrorType.Unauthorized);
+                return ServiceResponse<string>.Fail("Неправильний Email або пароль.", ErrorType.Unauthorized);
             }
 
             string token = _jwtTokenGenerator.GenerateToken(user);
 
             return ServiceResponse<string>.Ok(token, "Авторизація успішна.");
         }
+
+        private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
     }
 }

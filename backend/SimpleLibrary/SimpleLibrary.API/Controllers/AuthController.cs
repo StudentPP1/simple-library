@@ -11,45 +11,65 @@ namespace SimpleLibrary.API.Controllers
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
-        private readonly IAuthService _authService;
+        private const string InternalErrorMessage = "Внутрішня помилка сервера. Спробуйте пізніше.";
 
-        public AuthController(IAuthService authService)
+        private readonly IAuthService _authService;
+        private readonly ILogger<AuthController> _logger;
+
+        public AuthController(IAuthService authService, ILogger<AuthController> logger)
         {
             _authService = authService;
+            _logger = logger;
         }
 
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
-            var response = await _authService.RegisterAsync(request);
-
-            if (!response.Success)
+            try
             {
-                return MapErrorToHttpResponse(response);
+                var response = await _authService.RegisterAsync(request);
+
+                if (!response.Success)
+                {
+                    return MapErrorToHttpResponse(response);
+                }
+
+                var responseData = new UserResponse
+                {
+                    Id = response.Data!.Id,
+                    FullName = response.Data.FullName,
+                    Email = response.Data.Email,
+                    Role = response.Data.Role.ToString()
+                };
+
+                return Ok(new ApiResponse<UserResponse>(true, response.Message, responseData));
             }
-
-            var responseData = new UserResponse
+            catch (Exception ex)
             {
-                Id = response.Data!.Id,
-                FullName = response.Data.FullName,
-                Email = response.Data.Email,
-                Role = response.Data.Role.ToString()
-            };
-
-            return Ok(new ApiResponse<UserResponse>(true, response.Message, responseData));
+                _logger.LogError(ex, "Помилка під час реєстрації користувача.");
+                return StatusCode(500, new ApiResponse<UserResponse>(false, InternalErrorMessage, null));
+            }
         }
 
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            var response = await _authService.AuthenticateAsync(request);
-
-            if (!response.Success)
+            try
             {
-                return MapErrorToHttpResponse(response);
-            }
+                var response = await _authService.AuthenticateAsync(request);
 
-            return Ok(new ApiResponse<string>(true, response.Message, response.Data));
+                if (!response.Success)
+                {
+                    return MapErrorToHttpResponse(response);
+                }
+
+                return Ok(new ApiResponse<string>(true, response.Message, response.Data));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Помилка під час авторизації користувача.");
+                return StatusCode(500, new ApiResponse<string>(false, InternalErrorMessage, null));
+            }
         }
 
         private IActionResult MapErrorToHttpResponse<T>(ServiceResponse<T> response)

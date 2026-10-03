@@ -35,11 +35,11 @@ namespace SimpleLibrary.API.Dependencies
 
                 options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
-                    Description = "Введіть JWT токен у форматі: Bearer {ваш_токен}",
+                    Description = "Введіть JWT токен",
                     Name = "Authorization",
                     In = ParameterLocation.Header,
-                    Type = SecuritySchemeType.ApiKey,
-                    Scheme = "Bearer"
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "bearer"
                 });
 
                 options.AddSecurityRequirement(new OpenApiSecurityRequirement
