@@ -14,10 +14,12 @@ namespace SimpleLibrary.API.Controllers
     public class BooksController : ControllerBase
     {
         private readonly IBookService _bookService;
+        private readonly ILogger<BooksController> _logger;
 
-        public BooksController(IBookService bookService)
+        public BooksController(IBookService bookService, ILogger<BooksController> logger)
         {
             _bookService = bookService;
+            _logger = logger;
         }
 
         /// <summary>
@@ -27,14 +29,22 @@ namespace SimpleLibrary.API.Controllers
         [HttpGet]
         public async Task<IActionResult> GetCatalog([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
-            var response = await _bookService.GetCatalogAsync(pageNumber, pageSize);
-
-            if (!response.Success)
+            try
             {
-                return MapErrorToHttpResponse(response);
-            }
+                var response = await _bookService.GetCatalogAsync(pageNumber, pageSize);
 
-            return Ok(new ApiResponse<PagedResponse<BookResponse>>(true, response.Message, response.Data));
+                if (!response.Success)
+                {
+                    return MapErrorToHttpResponse(response);
+                }
+
+                return Ok(new ApiResponse<PagedResponse<BookResponse>>(true, response.Message, response.Data));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Помилка під час отримання каталогу книг.");
+                return StatusCode(500, new ApiResponse<PagedResponse<BookResponse>>(false, "Внутрішня помилка сервера. Спробуйте пізніше.", null));
+            }
         }
 
         /// <summary>
@@ -45,14 +55,47 @@ namespace SimpleLibrary.API.Controllers
         [Authorize(Roles = "Librarian")]
         public async Task<IActionResult> AddBook([FromBody] CreateBookRequest request)
         {
-            var response = await _bookService.AddBookAsync(request);
-
-            if (!response.Success)
+            try
             {
-                return MapErrorToHttpResponse(response);
-            }
+                var response = await _bookService.AddBookAsync(request);
 
-            return StatusCode(201, new ApiResponse<BookResponse>(true, response.Message, response.Data));
+                if (!response.Success)
+                {
+                    return MapErrorToHttpResponse(response);
+                }
+
+                return StatusCode(201, new ApiResponse<BookResponse>(true, response.Message, response.Data));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Помилка під час додавання книги.");
+                return StatusCode(500, new ApiResponse<BookResponse>(false, "Внутрішня помилка сервера. Спробуйте пізніше.", null));
+            }
+        }
+
+        /// <summary>
+        /// Отримання детальної інформації про книгу (FR-3).
+        /// Доступно всім користувачам.
+        /// </summary>
+        [HttpGet("{id:guid}")]
+        public async Task<IActionResult> GetBookById(Guid id)
+        {
+            try
+            {
+                var response = await _bookService.GetBookByIdAsync(id);
+
+                if (!response.Success)
+                {
+                    return MapErrorToHttpResponse(response);
+                }
+
+                return Ok(new ApiResponse<BookResponse>(true, response.Message, response.Data));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Помилка під час отримання книги за ID.");
+                return StatusCode(500, new ApiResponse<BookResponse>(false, "Внутрішня помилка сервера. Спробуйте пізніше.", null));
+            }
         }
 
         private IActionResult MapErrorToHttpResponse<T>(ServiceResponse<T> response)

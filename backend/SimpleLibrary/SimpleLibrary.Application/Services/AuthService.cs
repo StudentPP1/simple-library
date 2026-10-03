@@ -26,18 +26,22 @@ namespace SimpleLibrary.Application.Services
             string email = NormalizeEmail(request.Email);
             string fullName = request.FullName.Trim();
 
+            var role = UserRole.Reader;
+
+            if (!string.IsNullOrWhiteSpace(request.LibrarianSecretCode))
+            {
+                if (request.LibrarianSecretCode != _configuration["SecuritySettings:LibrarianInviteCode"])
+                {
+                    return ServiceResponse<User>.Fail("Неправильний інвайт-код бібліотекаря.", ErrorType.Validation);
+                }
+
+                role = UserRole.Librarian;
+            }
+
             var existingUser = await _unitOfWork.UserRepository.GetByEmailAsync(email);
             if (existingUser != null)
             {
                 return ServiceResponse<User>.Fail("Користувач з таким Email вже існує.", ErrorType.Conflict);
-            }
-
-            var role = UserRole.Reader;
-
-            if (!string.IsNullOrWhiteSpace(request.LibrarianSecretCode) &&
-            request.LibrarianSecretCode == _configuration["SecuritySettings:LibrarianInviteCode"])
-            {
-                role = UserRole.Librarian;
             }
 
             string passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);

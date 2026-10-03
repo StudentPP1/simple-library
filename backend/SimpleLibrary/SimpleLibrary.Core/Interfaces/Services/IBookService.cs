@@ -8,5 +8,7 @@ namespace SimpleLibrary.Core.Interfaces.Services
     {
         Task<ServiceResponse<BookResponse>> AddBookAsync(CreateBookRequest request);
         Task<ServiceResponse<PagedResponse<BookResponse>>> GetCatalogAsync(int pageNumber, int pageSize);
+        Task<ServiceResponse<BookResponse>> GetBookByIdAsync(Guid id);
+
     }
 }
