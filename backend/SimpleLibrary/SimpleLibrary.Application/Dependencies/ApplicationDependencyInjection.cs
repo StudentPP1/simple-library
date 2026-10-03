@@ -9,6 +9,7 @@ namespace SimpleLibrary.Application.Dependencies
         public static IServiceCollection AddApplicationLogic(this IServiceCollection services)
         {
             services.AddScoped<IAuthService, AuthService>();
+            services.AddScoped<IBookService, BookService>();
 
             return services;
         }

@@ -8,11 +8,13 @@ namespace SimpleLibrary.DataAccess.Postgres.UnitsOfWork
         private readonly LibraryDbContext _context;
 
         public IUserRepository UserRepository { get; }
+        public IBookRepository BookRepository { get; }
 
-        public UnitOfWork(LibraryDbContext context, IUserRepository userRepository)
+        public UnitOfWork(LibraryDbContext context, IUserRepository userRepository, IBookRepository bookRepository)
         {
             _context = context;
             UserRepository = userRepository;
+            BookRepository = bookRepository;
         }
 
         public async Task<int> SaveChangesAsync()
