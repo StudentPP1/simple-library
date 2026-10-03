@@ -17,5 +17,7 @@ namespace SimpleLibrary.Core.DTOs.Requests
         [MinLength(8, ErrorMessage = "Пароль має містити щонайменше 8 символів.")]
         [MaxLength(72, ErrorMessage = "Пароль не може бути довшим за 72 символи.")]
         public string Password { get; set; } = string.Empty;
+
+        public string? LibrarianSecretCode { get; init; }
     }
 }

@@ -4,6 +4,7 @@ using SimpleLibrary.Core.Enums;
 using SimpleLibrary.Core.Interfaces.Services;
 using SimpleLibrary.Core.Interfaces.UnitsOfWork;
 using SimpleLibrary.Core.Models;
+using Microsoft.Extensions.Configuration;
 
 namespace SimpleLibrary.Application.Services
 {
@@ -11,11 +12,13 @@ namespace SimpleLibrary.Application.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IJwtTokenGenerator _jwtTokenGenerator;
+        private readonly IConfiguration _configuration;
 
-        public AuthService(IUnitOfWork unitOfWork, IJwtTokenGenerator jwtTokenGenerator)
+        public AuthService(IUnitOfWork unitOfWork, IJwtTokenGenerator jwtTokenGenerator, IConfiguration configuration)
         {
             _unitOfWork = unitOfWork;
             _jwtTokenGenerator = jwtTokenGenerator;
+            _configuration = configuration;
         }
 
         public async Task<ServiceResponse<User>> RegisterAsync(RegisterRequest request)
@@ -29,9 +32,17 @@ namespace SimpleLibrary.Application.Services
                 return ServiceResponse<User>.Fail("Користувач з таким Email вже існує.", ErrorType.Conflict);
             }
 
+            var role = UserRole.Reader;
+
+            if (!string.IsNullOrWhiteSpace(request.LibrarianSecretCode) &&
+            request.LibrarianSecretCode == _configuration["SecuritySettings:LibrarianInviteCode"])
+            {
+                role = UserRole.Librarian;
+            }
+
             string passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
-            var newUser = new User(fullName, email, passwordHash, UserRole.Reader);
+            var newUser = new User(fullName, email, passwordHash, role);
 
             await _unitOfWork.UserRepository.AddAsync(newUser);
 
