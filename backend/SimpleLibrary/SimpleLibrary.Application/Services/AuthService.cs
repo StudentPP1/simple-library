@@ -49,7 +49,6 @@ namespace SimpleLibrary.Application.Services
             var newUser = new User(fullName, email, passwordHash, role);
 
             await _unitOfWork.UserRepository.AddAsync(newUser);
-
             await _unitOfWork.SaveChangesAsync();
 
             return ServiceResponse<User>.Ok(newUser, "Реєстрація успішна.");

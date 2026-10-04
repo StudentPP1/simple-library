@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="SimpleLibrary.API/SimpleLibrary.API.csproj" />
+  <Project Path="SimpleLibrary.Application.Tests/SimpleLibrary.Application.Tests.csproj" Id="024e07dd-396c-44c5-8110-332de8a55b3f" />
   <Project Path="SimpleLibrary.Application/SimpleLibrary.Application.csproj" />
   <Project Path="SimpleLibrary.Core/SimpleLibrary.Core.csproj" />
   <Project Path="SimpleLibrary.DataAccess.Postgres/SimpleLibrary.DataAccess.Postgres.csproj" />
