@@ -16,6 +16,7 @@ namespace SimpleLibrary.DataAccess.Postgres.Dependencies
                 options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
 
             services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IBookRepository, BookRepository>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
 
             return services;

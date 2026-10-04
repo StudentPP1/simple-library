@@ -11,8 +11,6 @@ namespace SimpleLibrary.API.Controllers
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
-        private const string InternalErrorMessage = "Внутрішня помилка сервера. Спробуйте пізніше.";
-
         private readonly IAuthService _authService;
         private readonly ILogger<AuthController> _logger;
 
@@ -22,6 +20,11 @@ namespace SimpleLibrary.API.Controllers
             _logger = logger;
         }
 
+        /// <summary>
+        /// Реєстрація нового користувача.
+        /// Без інвайт-коду користувач отримує роль Читача, з правильним інвайт-кодом — роль Бібліотекаря.
+        /// Доступно всім користувачам.
+        /// </summary>
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
@@ -47,10 +50,14 @@ namespace SimpleLibrary.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Помилка під час реєстрації користувача.");
-                return StatusCode(500, new ApiResponse<UserResponse>(false, InternalErrorMessage, null));
+                return StatusCode(500, new ApiResponse<UserResponse>(false, "Внутрішня помилка сервера. Спробуйте пізніше.", null));
             }
         }
 
+        /// <summary>
+        /// Авторизація користувача за email і паролем. Повертає JWT-токен.
+        /// Доступно всім користувачам.
+        /// </summary>
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
@@ -68,7 +75,7 @@ namespace SimpleLibrary.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Помилка під час авторизації користувача.");
-                return StatusCode(500, new ApiResponse<string>(false, InternalErrorMessage, null));
+                return StatusCode(500, new ApiResponse<string>(false, "Внутрішня помилка сервера. Спробуйте пізніше.", null));
             }
         }
 
