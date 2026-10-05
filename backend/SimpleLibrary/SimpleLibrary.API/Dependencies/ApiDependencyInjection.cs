@@ -15,6 +15,12 @@ namespace SimpleLibrary.API.Dependencies
         {
             services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 
+            var jwtSecretKey = configuration["JwtSettings:SecretKey"];
+            if (string.IsNullOrWhiteSpace(jwtSecretKey) || Encoding.UTF8.GetByteCount(jwtSecretKey) < 32)
+            {
+                throw new InvalidOperationException("JwtSettings:SecretKey не задано або коротше 32 символів.");
+            }
+
             var allowedOrigins = (configuration["Cors:AllowedOrigins"] ?? string.Empty)
                 .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .Select(origin => origin.TrimEnd('/'))
@@ -42,7 +48,7 @@ namespace SimpleLibrary.API.Dependencies
                         ValidIssuer = configuration["JwtSettings:Issuer"],
                         ValidAudience = configuration["JwtSettings:Audience"],
                         IssuerSigningKey = new SymmetricSecurityKey(
-                            Encoding.UTF8.GetBytes(configuration["JwtSettings:SecretKey"]!))
+                            Encoding.UTF8.GetBytes(jwtSecretKey))
                     };
                 });
 
