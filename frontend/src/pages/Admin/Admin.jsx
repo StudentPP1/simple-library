@@ -8,7 +8,7 @@ export default function Admin() {
     { id: 3, reader: 'Іванов І.І.', book: 'Майстер і Маргарита', date: '2026-09-10', status: 'Протерміновано' },
   ]);
 
-  // Функція для зміни статусу (імітація роботи API)
+  // Функція для зміни статусу
   const handleAction = (id, newStatus) => {
     setRequests(requests.map(req => req.id === id ? { ...req, status: newStatus } : req));
   };
