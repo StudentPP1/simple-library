@@ -4,11 +4,9 @@ services:
     container_name: simple-library-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-      POSTGRES_DB: ${POSTGRES_DB:-SimpleLibraryDb}
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -26,26 +24,33 @@ services:
       db:
         condition: service_healthy
     environment:
-      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
-      ConnectionStrings__DefaultConnection: Host=db;Port=5432;Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required};Database=${POSTGRES_DB:-SimpleLibraryDb}
-      Cors__AllowedOrigins: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
-      Swagger__Enabled: ${SWAGGER_ENABLED:-true}
-      JwtSettings__SecretKey: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
-      SecuritySettings__LibrarianInviteCode: ${LIBRARIAN_INVITE_CODE:?LIBRARIAN_INVITE_CODE is required}
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+      ConnectionStrings__DefaultConnection: Host=db;Port=5432;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};Database=${POSTGRES_DB}
+      Cors__AllowedOrigins: ${CORS_ALLOWED_ORIGINS}
+      Swagger__Enabled: ${SWAGGER_ENABLED}
+      JwtSettings__SecretKey: ${JWT_SECRET_KEY}
+      SecuritySettings__LibrarianInviteCode: ${LIBRARIAN_INVITE_CODE}
     ports:
-      - "${BACKEND_PORT:-5000}:8080"
+      - "127.0.0.1:${BACKEND_PORT}:8080"
 
   frontend:
     build:
       context: ./frontend
       args:
-        VITE_API_URL: ${VITE_API_URL:-http://localhost:5000/api}
+        VITE_API_URL: ${VITE_API_URL}
     container_name: simple-library-frontend
     restart: unless-stopped
     depends_on:
       - backend
     ports:
-      - "${FRONTEND_PORT:-3000}:3000"
+      - "127.0.0.1:${FRONTEND_PORT}:3000"
+
+  tests:
+    build:
+      context: ./backend/SimpleLibrary
+      target: test
+    container_name: simple-library-tests
+    profiles: ["test"]
 
 volumes:
   postgres_data:
