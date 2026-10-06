@@ -19,7 +19,7 @@ export default function Login() {
         password
       });
 
-      // Бекенд повертає ApiResponse, де токен лежить у response.data.data
+      // Бекенд повертає ApiResponse, де токен лежить у response.data
       const token = response.data.data;
 
       if (response.data.success && token) {
