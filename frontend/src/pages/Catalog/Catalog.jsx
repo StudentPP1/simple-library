@@ -1,65 +1,55 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import api from '../../services/api';
 
 export default function Catalog() {
-  // Тимчасові мок-дані
-  const [books] = useState([
-    { id: 1, title: '1984', author: 'Джордж Оруелл', status: 'Available' },
-    { id: 2, title: 'Майстер і Маргарита', author: 'Михайло Булгаков', status: 'Reserved' },
-    { id: 3, title: 'Кобзар', author: 'Тарас Шевченко', status: 'IssuedOut' },
-    { id: 4, title: 'Чистий код', author: 'Роберт Мартін', status: 'Available' },
-  ]);
+  const [books, setBooks] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Функція для рендеру відповідного бейджа статусу
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case 'Available':
-        return <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">В наявності</span>;
-      case 'Reserved':
-        return <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded-full">Заброньовано</span>;
-      case 'IssuedOut':
-        return <span className="px-2 py-1 bg-red-100 text-red-800 text-xs font-semibold rounded-full">Видана</span>;
-      default:
-        return null;
-    }
-  };
+  useEffect(() => {
+    // Викликаємо метод GetCatalog з BooksController
+    api.get('/Books')
+      .then(response => {
+        // Залежно від реалізації PagedResponse на бекенді, масив книг може лежати в data.items або data.data
+        const booksData = response.data.data.items || response.data.data || [];
+        setBooks(booksData);
+      })
+      .catch(error => {
+        console.error('Помилка завантаження каталогу:', error);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
 
   return (
-    <div>
-      {/* Шапка каталогу з пошуком */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Електронний каталог</h2>
-        <input
-          type="text"
-          placeholder="Пошук за назвою..."
-          className="px-4 py-2 border border-gray-300 rounded-md w-72 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-gray-800">Електронний каталог</h2>
 
-      {/* Сітка карток книг */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {books.map((book) => (
-          <div key={book.id} className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm hover:shadow-md transition flex flex-col">
-            <div className="flex-grow">
-              <h3 className="text-lg font-bold text-gray-900 mb-1">{book.title}</h3>
-              <p className="text-gray-600 mb-4">{book.author}</p>
+      {loading ? (
+        <p className="text-gray-600">Завантаження книг...</p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {books.length > 0 ? books.map((book) => (
+            <div key={book.id} className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm flex flex-col justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">{book.title}</h3>
+                <p className="text-gray-600 text-sm mt-1">{book.author}</p>
+              </div>
+              <div className="mt-6 flex items-center justify-between">
+                {/* Якщо бекенд повертає статус наявності, можна додати умову тут */}
+                <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">
+                  В наявності
+                </span>
+                <button className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-md hover:bg-blue-700 transition">
+                  Забронювати
+                </button>
+              </div>
             </div>
-
-            <div className="flex justify-between items-center mt-4 border-t pt-4">
-              {getStatusBadge(book.status)}
-              <button
-                disabled={book.status !== 'Available'}
-                className={`px-4 py-2 text-sm font-semibold rounded-md transition ${
-                  book.status === 'Available' 
-                    ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                }`}
-              >
-                Забронювати
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+          )) : (
+            <p className="text-gray-500">Каталог поки порожній.</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
