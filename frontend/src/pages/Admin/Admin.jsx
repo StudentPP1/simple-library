@@ -1,75 +1,185 @@
 import { useState } from 'react';
+import api from '../../services/api';
 
 export default function Admin() {
-  // Мок-дані запитів від усіх читачів
-  const [requests, setRequests] = useState([
-    { id: 1, reader: 'Іванов І.І.', book: '1984', date: '2026-10-04', status: 'Заброньовано' },
-    { id: 2, reader: 'Петренко О.М.', book: 'Кобзар', date: '2026-09-20', status: 'На руках' },
-    { id: 3, reader: 'Іванов І.І.', book: 'Майстер і Маргарита', date: '2026-09-10', status: 'Протерміновано' },
-  ]);
+  // Стан для форми точно відповідає CreateBookRequest.cs
+  const [formData, setFormData] = useState({
+    title: '',
+    author: '',
+    genre: '',
+    isbn: '',
+    publicationYear: '',
+    copiesCount: 1,
+  });
 
-  // Функція для зміни статусу
-  const handleAction = (id, newStatus) => {
-    setRequests(requests.map(req => req.id === id ? { ...req, status: newStatus } : req));
+  const [status, setStatus] = useState({ type: '', message: '' });
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const getStatusBadge = (status) => {
-    if (status === 'На руках') return <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">На руках</span>;
-    if (status === 'Протерміновано') return <span className="px-2 py-1 bg-red-100 text-red-800 text-xs font-semibold rounded-full">Протерміновано</span>;
-    if (status === 'Заброньовано') return <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded-full">Заброньовано</span>;
-    if (status === 'Повернуто') return <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">Повернуто</span>;
-    return null;
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setStatus({ type: '', message: '' });
+
+    try {
+      // Відправляємо дані на бекенд
+      await api.post('/Books', {
+        title: formData.title.trim(),
+        author: formData.author.trim(),
+        genre: formData.genre.trim(),
+        isbn: formData.isbn.trim(),
+        // Якщо рік порожній, передаємо 0
+        publicationYear: formData.publicationYear ? parseInt(formData.publicationYear) : 0,
+        copiesCount: parseInt(formData.copiesCount)
+      });
+
+      setStatus({ type: 'success', message: 'Книгу та примірники успішно додано до каталогу!' });
+
+      // Очищаємо форму
+      setFormData({
+        title: '',
+        author: '',
+        genre: '',
+        isbn: '',
+        publicationYear: '',
+        copiesCount: 1,
+      });
+    } catch (error) {
+      console.error('Помилка при збереженні:', error);
+      setStatus({
+        type: 'error',
+        message: error.response?.data?.message || 'Не вдалося додати книгу. Перевірте дані.'
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-800">Панель бібліотекаря</h2>
+    <div className="max-w-3xl mx-auto py-8">
+      <h2 className="text-3xl font-bold mb-8 text-gray-800 text-center">Панель бібліотекаря</h2>
 
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-          <h3 className="text-lg font-bold text-gray-800">Управління видачею книг</h3>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-gray-50 text-gray-600 text-sm border-b border-gray-200">
-                <th className="px-6 py-3 font-medium">Читач</th>
-                <th className="px-6 py-3 font-medium">Книга</th>
-                <th className="px-6 py-3 font-medium">Дата запиту</th>
-                <th className="px-6 py-3 font-medium">Статус</th>
-                <th className="px-6 py-3 font-medium text-right">Дії</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {requests.map((req) => (
-                <tr key={req.id} className="hover:bg-gray-50 transition">
-                  <td className="px-6 py-4 font-medium text-gray-900">{req.reader}</td>
-                  <td className="px-6 py-4 text-gray-600">{req.book}</td>
-                  <td className="px-6 py-4 text-gray-600">{req.date}</td>
-                  <td className="px-6 py-4">{getStatusBadge(req.status)}</td>
-                  <td className="px-6 py-4 text-right space-x-2">
-                    {req.status === 'Заброньовано' && (
-                      <button
-                        onClick={() => handleAction(req.id, 'На руках')}
-                        className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition"
-                      >
-                        Видати
-                      </button>
-                    )}
-                    {(req.status === 'На руках' || req.status === 'Протерміновано') && (
-                      <button
-                        onClick={() => handleAction(req.id, 'Повернуто')}
-                        className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition"
-                      >
-                        Прийняти
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      <div className="bg-white p-8 rounded-xl shadow-md border border-gray-100">
+        <h3 className="text-xl font-semibold mb-6 text-blue-700 border-b pb-2">
+          Додати нове надходження (FR-4)
+        </h3>
+
+        {status.message && (
+          <div className={`p-4 mb-6 rounded-lg font-medium ${
+            status.type === 'success' 
+              ? 'bg-green-100 text-green-800 border border-green-200' 
+              : 'bg-red-100 text-red-800 border border-red-200'
+          }`}>
+            {status.message}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="md:col-span-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Назва книги *</label>
+              <input
+                type="text"
+                name="title"
+                required
+                maxLength="250"
+                value={formData.title}
+                onChange={handleChange}
+                placeholder="Введіть назву книги"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Автор *</label>
+              <input
+                type="text"
+                name="author"
+                required
+                maxLength="150"
+                value={formData.author}
+                onChange={handleChange}
+                placeholder="Наприклад: Тарас Шевченко"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Жанр</label>
+              <input
+                type="text"
+                name="genre"
+                maxLength="100"
+                value={formData.genre}
+                onChange={handleChange}
+                placeholder="Наприклад: Фантастика"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">ISBN</label>
+              <input
+                type="text"
+                name="isbn"
+                maxLength="20"
+                value={formData.isbn}
+                onChange={handleChange}
+                placeholder="978-3-16-148410-0"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Рік видання</label>
+              <input
+                type="number"
+                name="publicationYear"
+                min="1000"
+                max={new Date().getFullYear()}
+                value={formData.publicationYear}
+                onChange={handleChange}
+                placeholder="Наприклад: 2024"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Кількість примірників *</label>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <input
+                  type="number"
+                  name="copiesCount"
+                  min="1"
+                  max="100"
+                  required
+                  value={formData.copiesCount}
+                  onChange={handleChange}
+                  className="w-32 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition font-bold text-center"
+                />
+                <p className="text-sm text-gray-500 italic">
+                  Від 1 до 100 фізичних примірників цієї книги. Вони будуть автоматично створені в базі.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className={`w-full py-4 px-6 rounded-lg text-white font-bold text-lg transition duration-200 shadow-md ${
+              isLoading 
+                ? 'bg-blue-400 cursor-not-allowed' 
+                : 'bg-blue-600 hover:bg-blue-700 hover:shadow-lg'
+            }`}
+          >
+            {isLoading ? 'Відправка даних...' : '📚 Додати книгу в базу'}
+          </button>
+        </form>
       </div>
     </div>
   );
