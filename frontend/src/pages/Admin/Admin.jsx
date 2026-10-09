@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../../services/api';
+import EditBookModal from './EditBookModal';
 
 export default function Admin() {
-  // Стан для форми точно відповідає CreateBookRequest.cs
   const [formData, setFormData] = useState({
     title: '',
     author: '',
@@ -12,8 +12,25 @@ export default function Admin() {
     copiesCount: 1,
   });
 
+  const [books, setBooks] = useState([]);
+  const [editingBook, setEditingBook] = useState(null);
   const [status, setStatus] = useState({ type: '', message: '' });
   const [isLoading, setIsLoading] = useState(false);
+
+  // Завантаження списку книг
+  const fetchBooks = async () => {
+    try {
+      const response = await api.get('/Books');
+      const data = response.data?.data?.items || response.data?.data || [];
+      setBooks(data);
+    } catch (err) {
+      console.error('Помилка завантаження книг:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchBooks();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -26,20 +43,17 @@ export default function Admin() {
     setStatus({ type: '', message: '' });
 
     try {
-      // Відправляємо дані на бекенд
       await api.post('/Books', {
         title: formData.title.trim(),
         author: formData.author.trim(),
         genre: formData.genre.trim(),
         isbn: formData.isbn.trim(),
-        // Якщо рік порожній, передаємо 0
         publicationYear: formData.publicationYear ? parseInt(formData.publicationYear) : 0,
         copiesCount: parseInt(formData.copiesCount)
       });
 
       setStatus({ type: 'success', message: 'Книгу та примірники успішно додано до каталогу!' });
 
-      // Очищаємо форму
       setFormData({
         title: '',
         author: '',
@@ -48,6 +62,8 @@ export default function Admin() {
         publicationYear: '',
         copiesCount: 1,
       });
+
+      fetchBooks(); // Оновлюємо список після додавання
     } catch (error) {
       console.error('Помилка при збереженні:', error);
       setStatus({
@@ -63,7 +79,8 @@ export default function Admin() {
     <div className="max-w-3xl mx-auto py-8">
       <h2 className="text-3xl font-bold mb-8 text-gray-800 text-center">Панель бібліотекаря</h2>
 
-      <div className="bg-white p-8 rounded-xl shadow-md border border-gray-100">
+      {/* Форма додавання нової книги (FR-4) */}
+      <div className="bg-white p-8 rounded-xl shadow-md border border-gray-100 mb-10">
         <h3 className="text-xl font-semibold mb-6 text-blue-700 border-b pb-2">
           Додати нове надходження (FR-4)
         </h3>
@@ -181,6 +198,48 @@ export default function Admin() {
           </button>
         </form>
       </div>
+
+      {/* Список книг для редагування (FR-11) */}
+      <div className="bg-white p-8 rounded-xl shadow-md border border-gray-100">
+        <h3 className="text-xl font-semibold mb-6 text-gray-800 border-b pb-2">
+          Управління книжковим фондом (FR-11)
+        </h3>
+
+        {books.length === 0 ? (
+          <p className="text-gray-500 text-center py-4">Книг у базі поки немає.</p>
+        ) : (
+          <div className="divide-y divide-gray-200">
+            {books.map((book) => (
+              <div key={book.id} className="py-4 flex items-center justify-between gap-4">
+                <div>
+                  <h4 className="font-bold text-gray-900">{book.title}</h4>
+                  <p className="text-sm text-gray-600">
+                    {book.author} | <span className="text-blue-600">{book.genre || 'Без жанру'}</span> | Рік: {book.publicationYear || '—'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setEditingBook(book)}
+                  className="px-4 py-2 bg-amber-500 text-white text-sm font-semibold rounded-lg hover:bg-amber-600 transition shadow-sm whitespace-nowrap"
+                >
+                  ✏️ Редагувати
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Модальне вікно редагування */}
+      {editingBook && (
+        <EditBookModal
+          book={editingBook}
+          onClose={() => setEditingBook(null)}
+          onSuccess={(msg) => {
+            setStatus({ type: 'success', message: msg });
+            fetchBooks();
+          }}
+        />
+      )}
     </div>
   );
 }
