@@ -4,8 +4,8 @@
 
 Користувачі мають дві ролі:
 
-- **Читач** - переглядає каталог, бронює книги, бачить свої видачі та історію читань.
-- **Бібліотекар** - додає та редагує книги, оформлює видачу й повернення, бачить боржників.
+- Читач - переглядає каталог, бронює книги, бачить свої видачі та історію читань.
+- Бібліотекар - додає та редагує книги, оформлює видачу й повернення, бачить боржників.
 
 ## Команда
 
@@ -118,3 +118,10 @@ CI (GitHub Actions) на кожен push і pull request у `main` збирає 
 - Кожна задача ведеться в окремій гілці: `feature/<назва>`, `test/<назва>`, `fix/<назва>`.
 - Зміни потрапляють у `main` лише через pull request після код-рев'ю та успішного CI.
 - Повідомлення комітів пишемо за [Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix:`, `test:`, `docs:`.
+
+## Посилання та деплой
++ реєстрація [читатача](https://simple-library-eja.pages.dev/register)
++ реєстрація [бібліотекаря](https://simple-library-eja.pages.dev/register?secret_key=8bHoiGdP4SMPTAHEQuOZDYRyIm0UE4cs)
++ [swagger](https://simple-library-api-39623256372.europe-west1.run.app/swagger/index.html)
+
+Пострес база на Neon, front автоматично підтягується з main, backend через github a
