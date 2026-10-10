@@ -27,23 +27,22 @@ namespace SimpleLibrary.API.Controllers
         /// Доступно всім користувачам.
         /// </summary>
         [HttpGet]
-        public async Task<IActionResult> GetCatalog([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+        public async Task<IActionResult> GetCatalog(
+            [FromQuery] string? search = null,
+            [FromQuery] string? genre = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10)
         {
             try
             {
-                var response = await _bookService.GetCatalogAsync(pageNumber, pageSize);
-
-                if (!response.Success)
-                {
-                    return MapErrorToHttpResponse(response);
-                }
-
+                var response = await _bookService.GetCatalogAsync(pageNumber, pageSize, search, genre);
+                if (!response.Success) return MapErrorToHttpResponse(response);
                 return Ok(new ApiResponse<PagedResponse<BookResponse>>(true, response.Message, response.Data));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Помилка під час отримання каталогу книг.");
-                return StatusCode(500, new ApiResponse<PagedResponse<BookResponse>>(false, "Внутрішня помилка сервера. Спробуйте пізніше.", null));
+                return StatusCode(500, new ApiResponse<PagedResponse<BookResponse>>(false, "Внутрішня помилка сервера.", null));
             }
         }
 
@@ -95,6 +94,48 @@ namespace SimpleLibrary.API.Controllers
             {
                 _logger.LogError(ex, "Помилка під час отримання книги за ID.");
                 return StatusCode(500, new ApiResponse<BookResponse>(false, "Внутрішня помилка сервера. Спробуйте пізніше.", null));
+            }
+        }
+
+        /// <summary>
+        /// Редагування інформації про книгу.
+        /// Доступно тільки Бібліотекарю.
+        /// </summary>
+        [HttpPut("{id:guid}")]
+        [Authorize(Roles = "Librarian")]
+        public async Task<IActionResult> UpdateBook(Guid id, [FromBody] UpdateBookRequest request)
+        {
+            try
+            {
+                var response = await _bookService.UpdateBookAsync(id, request);
+                if (!response.Success) return MapErrorToHttpResponse(response);
+                return Ok(new ApiResponse<BookResponse>(true, response.Message, response.Data));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Помилка під час оновлення книги.");
+                return StatusCode(500, new ApiResponse<BookResponse>(false, "Внутрішня помилка сервера.", null));
+            }
+        }
+
+        /// <summary>
+        /// Видалення книги з каталогу.
+        /// Доступно тільки Бібліотекарю.
+        /// </summary>
+        [HttpDelete("{id:guid}")]
+        [Authorize(Roles = "Librarian")]
+        public async Task<IActionResult> DeleteBook(Guid id)
+        {
+            try
+            {
+                var response = await _bookService.DeleteBookAsync(id);
+                if (!response.Success) return MapErrorToHttpResponse(response);
+                return Ok(new ApiResponse<bool>(true, response.Message, true));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Помилка під час видалення книги.");
+                return StatusCode(500, new ApiResponse<bool>(false, "Внутрішня помилка сервера.", false));
             }
         }
 
