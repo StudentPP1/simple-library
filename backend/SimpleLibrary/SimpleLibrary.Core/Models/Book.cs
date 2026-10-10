@@ -28,5 +28,14 @@
         {
             _copies.Add(copy);
         }
+
+        public void UpdateInfo(string title, string author, string genre, string isbn, int publicationYear)
+        {
+            Title = title;
+            Author = author;
+            Genre = genre;
+            ISBN = isbn;
+            PublicationYear = publicationYear;
+        }
     }
 }

@@ -26,13 +26,26 @@ namespace SimpleLibrary.DataAccess.Postgres.Repositories
                 .FirstOrDefaultAsync(b => b.Id == id);
         }
 
-
-        public async Task<(IEnumerable<(Book Book, int AvailableCopiesCount)> Items, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize)
+        public async Task<(IEnumerable<(Book Book, int AvailableCopiesCount)> Items, int TotalCount)> GetPagedAsync(
+            int pageNumber, int pageSize, string? searchTerm, string? genre)
         {
-            int totalCount = await _context.Books.CountAsync();
+            var query = _context.Books.AsNoTracking().AsQueryable();
 
-            var rows = await _context.Books
-                .AsNoTracking()
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                string searchLower = searchTerm.ToLower();
+                query = query.Where(b => b.Title.ToLower().Contains(searchLower) ||
+                                         b.Author.ToLower().Contains(searchLower));
+            }
+
+            if (!string.IsNullOrWhiteSpace(genre))
+            {
+                query = query.Where(b => b.Genre.ToLower() == genre.ToLower());
+            }
+
+            int totalCount = await query.CountAsync();
+
+            var rows = await query
                 .OrderBy(b => b.Title)
                 .ThenBy(b => b.Id)
                 .Skip((pageNumber - 1) * pageSize)
@@ -47,6 +60,11 @@ namespace SimpleLibrary.DataAccess.Postgres.Repositories
             var items = rows.Select(r => (r.Book, r.AvailableCopiesCount)).ToList();
 
             return (items, totalCount);
+        }
+
+        public void Delete(Book book)
+        {
+            _context.Books.Remove(book);
         }
     }
 }
