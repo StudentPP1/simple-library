@@ -1,12 +1,13 @@
 ﻿using SimpleLibrary.Core;
 using SimpleLibrary.Core.DTOs.Responses;
 using SimpleLibrary.Core.Enums;
+using SimpleLibrary.Core.Interfaces.Services;
 using SimpleLibrary.Core.Interfaces.UnitsOfWork;
 using SimpleLibrary.Core.Models;
 
 namespace SimpleLibrary.Application.Services
 {
-    public class LoanService
+    public class LoanService : ILoanService
     {
         private readonly IUnitOfWork _unitOfWork;
 
@@ -23,6 +24,13 @@ namespace SimpleLibrary.Application.Services
                 return ServiceResponse<LoanResponse>.Fail("На жаль, усі примірники цієї книги зараз зайняті.", ErrorType.Conflict);
             }
 
+            var activeLoansCount = await _unitOfWork.LoanRepository.GetActiveLoansCountForReaderAsync(readerId);
+            if (activeLoansCount >= 5)
+            {
+                return ServiceResponse<LoanResponse>.Fail("Ви досягли ліміту: не більше 5 активних книг або бронювань одночасно.", ErrorType.Conflict);
+            }
+
+
             availableCopy.ChangeStatus(CopyStatus.Reserved);
 
             var loan = new Loan(readerId, availableCopy.Id);
@@ -32,7 +40,7 @@ namespace SimpleLibrary.Application.Services
             {
                 await _unitOfWork.SaveChangesAsync();
             }
-            catch (Exception)
+            catch (Exception ex) when (ex.GetType().Name == "DbUpdateConcurrencyException")
             {
                 return ServiceResponse<LoanResponse>.Fail("Хтось інший щойно забронював цей примірник. Спробуйте ще раз.", ErrorType.Conflict);
             }
@@ -52,7 +60,14 @@ namespace SimpleLibrary.Application.Services
             loan.IssueToReader(librarianId, days);
             loan.BookCopy!.ChangeStatus(CopyStatus.IssuedOut);
 
-            await _unitOfWork.SaveChangesAsync();
+            try
+            {
+                await _unitOfWork.SaveChangesAsync();
+            }
+            catch (Exception ex) when (ex.GetType().Name == "DbUpdateConcurrencyException")
+            {
+                return ServiceResponse<LoanResponse>.Fail("Стан примірника щойно змінився іншим користувачем. Спробуйте оновити сторінку.", ErrorType.Conflict);
+            }
 
             return ServiceResponse<LoanResponse>.Ok(MapToResponse(loan));
         }
@@ -68,7 +83,14 @@ namespace SimpleLibrary.Application.Services
             loan.ReturnBook(librarianId);
             loan.BookCopy!.ChangeStatus(CopyStatus.Available);
 
-            await _unitOfWork.SaveChangesAsync();
+            try
+            {
+                await _unitOfWork.SaveChangesAsync();
+            }
+            catch (Exception ex) when (ex.GetType().Name == "DbUpdateConcurrencyException")
+            {
+                return ServiceResponse<LoanResponse>.Fail("Стан примірника щойно змінився іншим користувачем. Спробуйте оновити сторінку.", ErrorType.Conflict);
+            }
 
             return ServiceResponse<LoanResponse>.Ok(MapToResponse(loan));
         }
