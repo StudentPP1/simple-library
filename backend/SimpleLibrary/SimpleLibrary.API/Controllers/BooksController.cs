@@ -23,15 +23,11 @@ namespace SimpleLibrary.API.Controllers
         }
 
         /// <summary>
-        /// Перегляд електронного каталогу книг із пагінацією.
+        /// Перегляд електронного каталогу книг із пошуком, фільтрацією та пагінацією.
         /// Доступно всім користувачам.
         /// </summary>
         [HttpGet]
-        public async Task<IActionResult> GetCatalog(
-            [FromQuery] string? search = null,
-            [FromQuery] string? genre = null,
-            [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 10)
+        public async Task<IActionResult> GetCatalog([FromQuery] string? search = null, [FromQuery] string? genre = null, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
             try
             {
@@ -42,38 +38,12 @@ namespace SimpleLibrary.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Помилка під час отримання каталогу книг.");
-                return StatusCode(500, new ApiResponse<PagedResponse<BookResponse>>(false, "Внутрішня помилка сервера.", null));
+                return StatusCode(500, new ApiResponse<object>(false, "Внутрішня помилка сервера. Спробуйте пізніше.", null));
             }
         }
 
         /// <summary>
-        /// Додавання нової книги та генерація примірників.
-        /// Доступно ТІЛЬКИ Бібліотекарю (FR-9).
-        /// </summary>
-        [HttpPost]
-        [Authorize(Roles = "Librarian")]
-        public async Task<IActionResult> AddBook([FromBody] CreateBookRequest request)
-        {
-            try
-            {
-                var response = await _bookService.AddBookAsync(request);
-
-                if (!response.Success)
-                {
-                    return MapErrorToHttpResponse(response);
-                }
-
-                return StatusCode(201, new ApiResponse<BookResponse>(true, response.Message, response.Data));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Помилка під час додавання книги.");
-                return StatusCode(500, new ApiResponse<BookResponse>(false, "Внутрішня помилка сервера. Спробуйте пізніше.", null));
-            }
-        }
-
-        /// <summary>
-        /// Отримання детальної інформації про книгу (FR-3).
+        /// Отримання детальної інформації про книгу.
         /// Доступно всім користувачам.
         /// </summary>
         [HttpGet("{id:guid}")]
@@ -82,18 +52,34 @@ namespace SimpleLibrary.API.Controllers
             try
             {
                 var response = await _bookService.GetBookByIdAsync(id);
-
-                if (!response.Success)
-                {
-                    return MapErrorToHttpResponse(response);
-                }
-
+                if (!response.Success) return MapErrorToHttpResponse(response);
                 return Ok(new ApiResponse<BookResponse>(true, response.Message, response.Data));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Помилка під час отримання книги за ID.");
-                return StatusCode(500, new ApiResponse<BookResponse>(false, "Внутрішня помилка сервера. Спробуйте пізніше.", null));
+                return StatusCode(500, new ApiResponse<object>(false, "Внутрішня помилка сервера. Спробуйте пізніше.", null));
+            }
+        }
+
+        /// <summary>
+        /// Додавання нової книги та генерація примірників.
+        /// Доступно тільки Бібліотекарю.
+        /// </summary>
+        [HttpPost]
+        [Authorize(Roles = "Librarian")]
+        public async Task<IActionResult> AddBook([FromBody] CreateBookRequest request)
+        {
+            try
+            {
+                var response = await _bookService.AddBookAsync(request);
+                if (!response.Success) return MapErrorToHttpResponse(response);
+                return StatusCode(201, new ApiResponse<BookResponse>(true, response.Message, response.Data));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Помилка під час додавання книги.");
+                return StatusCode(500, new ApiResponse<object>(false, "Внутрішня помилка сервера. Спробуйте пізніше.", null));
             }
         }
 
@@ -114,7 +100,7 @@ namespace SimpleLibrary.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Помилка під час оновлення книги.");
-                return StatusCode(500, new ApiResponse<BookResponse>(false, "Внутрішня помилка сервера.", null));
+                return StatusCode(500, new ApiResponse<object>(false, "Внутрішня помилка сервера. Спробуйте пізніше.", null));
             }
         }
 
@@ -135,7 +121,7 @@ namespace SimpleLibrary.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Помилка під час видалення книги.");
-                return StatusCode(500, new ApiResponse<bool>(false, "Внутрішня помилка сервера.", false));
+                return StatusCode(500, new ApiResponse<object>(false, "Внутрішня помилка сервера. Спробуйте пізніше.", null));
             }
         }
 

@@ -5,7 +5,7 @@ namespace SimpleLibrary.Core.DTOs.Requests
     public class UpdateBookRequest
     {
         [Required(ErrorMessage = "Назва книги обов'язкова")]
-        [MaxLength(250)]
+        [MaxLength(250, ErrorMessage = "Назва не може бути довшою за 250 символів")]
         public string Title { get; init; } = string.Empty;
 
         [Required(ErrorMessage = "Автор обов'язковий")]

@@ -28,7 +28,7 @@ namespace SimpleLibrary.Application.Services
                 return ServiceResponse<BookResponse>.Fail($"Рік видання має бути до {DateTime.UtcNow.Year}", ErrorType.Validation);
             }
 
-            var book = new Book(request.Title, request.Author, request.Genre, request.ISBN, request.PublicationYear);
+            var book = new Book(request.Title.Trim(), request.Author.Trim(), request.Genre.Trim(), request.ISBN.Trim(), request.PublicationYear);
 
             for (int i = 0; i < request.CopiesCount; i++)
             {
@@ -74,6 +74,9 @@ namespace SimpleLibrary.Application.Services
                     "Номер сторінки має бути не меншим за 1.", ErrorType.Validation);
             }
 
+            searchTerm = searchTerm?.Trim();
+            genre = genre?.Trim();
+
             var (items, totalCount) = await _unitOfWork.BookRepository.GetPagedAsync(pageNumber, pageSize, searchTerm, genre);
 
             var responseItems = items
@@ -104,7 +107,7 @@ namespace SimpleLibrary.Application.Services
                 return ServiceResponse<BookResponse>.Fail("Книгу не знайдено.", ErrorType.NotFound);
             }
 
-            book.UpdateInfo(request.Title, request.Author, request.Genre, request.ISBN, request.PublicationYear);
+            book.UpdateInfo(request.Title.Trim(), request.Author.Trim(), request.Genre.Trim(), request.ISBN.Trim(), request.PublicationYear);
 
             await _unitOfWork.SaveChangesAsync();
 
@@ -125,10 +128,21 @@ namespace SimpleLibrary.Application.Services
                 return ServiceResponse<bool>.Fail("Не можна видалити книгу, оскільки її примірники зараз знаходяться у читачів.", ErrorType.Conflict);
             }
 
-            _unitOfWork.BookRepository.Delete(book);
-            await _unitOfWork.SaveChangesAsync();
+            try
+            {
+                _unitOfWork.BookRepository.Delete(book);
+                await _unitOfWork.SaveChangesAsync();
 
-            return ServiceResponse<bool>.Ok(true, "Книгу та всі її вільні примірники успішно видалено.");
+                return ServiceResponse<bool>.Ok(true, "Книгу та всі її вільні примірники успішно видалено.");
+            }
+            catch (Exception ex)
+            {
+                if (ex.InnerException != null && ex.InnerException.Message.Contains("23503"))
+                {
+                    return ServiceResponse<bool>.Fail("Не можна видалити книгу, оскільки вона збережена в історії читань користувачів.", ErrorType.Conflict);
+                }
+                throw;
+            }
         }
 
         private static BookResponse MapToResponse(Book book, int availableCopiesCount)

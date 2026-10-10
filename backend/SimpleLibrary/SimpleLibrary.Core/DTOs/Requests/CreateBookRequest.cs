@@ -9,7 +9,7 @@ namespace SimpleLibrary.Core.DTOs.Requests
         public string Title { get; init; } = string.Empty;
 
         [Required(ErrorMessage = "Автор обов'язковий")]
-        [MaxLength(150)]
+        [MaxLength(150, ErrorMessage = "Ім'я автора не може бути довшим за 150 символів")]
         public string Author { get; init; } = string.Empty;
 
         [MaxLength(100)]
