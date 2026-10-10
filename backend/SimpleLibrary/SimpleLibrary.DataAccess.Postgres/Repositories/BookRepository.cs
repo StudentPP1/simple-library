@@ -26,6 +26,12 @@ namespace SimpleLibrary.DataAccess.Postgres.Repositories
                 .FirstOrDefaultAsync(b => b.Id == id);
         }
 
+        public async Task<BookCopy?> GetAvailableCopyAsync(Guid bookId)
+        {
+            return await _context.BookCopies
+                .FirstOrDefaultAsync(c => c.BookId == bookId && c.Status == CopyStatus.Available);
+        }
+
         public async Task<(IEnumerable<(Book Book, int AvailableCopiesCount)> Items, int TotalCount)> GetPagedAsync(
             int pageNumber, int pageSize, string? searchTerm, string? genre)
         {
