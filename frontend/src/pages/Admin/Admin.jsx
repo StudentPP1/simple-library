@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import EditBookModal from './EditBookModal';
+import IssueBookModal from './IssueBookModal';
+import ReturnBookModal from './ReturnBookModal';
 
 export default function Admin() {
   const [formData, setFormData] = useState({
@@ -16,6 +18,10 @@ export default function Admin() {
   const [editingBook, setEditingBook] = useState(null);
   const [status, setStatus] = useState({ type: '', message: '' });
   const [isLoading, setIsLoading] = useState(false);
+
+  // Стан для відкриття модальних вікон
+  const [isIssueModalOpen, setIsIssueModalOpen] = useState(false);
+  const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
 
   // Завантаження списку книг
   const fetchBooks = async () => {
@@ -49,7 +55,7 @@ export default function Admin() {
         genre: formData.genre.trim(),
         isbn: formData.isbn.trim(),
         publicationYear: formData.publicationYear ? parseInt(formData.publicationYear) : 0,
-        copiesCount: parseInt(formData.copiesCount)
+        copiesCount: parseInt(formData.copiesCount),
       });
 
       setStatus({ type: 'success', message: 'Книгу та примірники успішно додано до каталогу!' });
@@ -68,7 +74,7 @@ export default function Admin() {
       console.error('Помилка при збереженні:', error);
       setStatus({
         type: 'error',
-        message: error.response?.data?.message || 'Не вдалося додати книгу. Перевірте дані.'
+        message: error.response?.data?.message || 'Не вдалося додати книгу. Перевірте дані.',
       });
     } finally {
       setIsLoading(false);
@@ -76,24 +82,27 @@ export default function Admin() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto py-8">
+    <div className="max-w-3xl mx-auto py-8 px-4">
       <h2 className="text-3xl font-bold mb-8 text-gray-800 text-center">Панель бібліотекаря</h2>
 
+      {/* Повідомлення про статус операцій */}
+      {status.message && (
+        <div
+          className={`p-4 mb-6 rounded-lg font-medium ${
+            status.type === 'success'
+              ? 'bg-green-100 text-green-800 border border-green-200'
+              : 'bg-red-100 text-red-800 border border-red-200'
+          }`}
+        >
+          {status.message}
+        </div>
+      )}
+
       {/* Форма додавання нової книги (FR-4) */}
-      <div className="bg-white p-8 rounded-xl shadow-md border border-gray-100 mb-10">
+      <div className="bg-white p-8 rounded-xl shadow-md border border-gray-100 mb-8">
         <h3 className="text-xl font-semibold mb-6 text-blue-700 border-b pb-2">
           Додати нове надходження (FR-4)
         </h3>
-
-        {status.message && (
-          <div className={`p-4 mb-6 rounded-lg font-medium ${
-            status.type === 'success' 
-              ? 'bg-green-100 text-green-800 border border-green-200' 
-              : 'bg-red-100 text-red-800 border border-red-200'
-          }`}>
-            {status.message}
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -189,8 +198,8 @@ export default function Admin() {
             type="submit"
             disabled={isLoading}
             className={`w-full py-4 px-6 rounded-lg text-white font-bold text-lg transition duration-200 shadow-md ${
-              isLoading 
-                ? 'bg-blue-400 cursor-not-allowed' 
+              isLoading
+                ? 'bg-blue-400 cursor-not-allowed'
                 : 'bg-blue-600 hover:bg-blue-700 hover:shadow-lg'
             }`}
           >
@@ -199,11 +208,27 @@ export default function Admin() {
         </form>
       </div>
 
-      {/* Список книг для редагування (FR-11) */}
+      {/* Список книг для редагування (FR-11) та панель дій (FR-5, FR-6) */}
       <div className="bg-white p-8 rounded-xl shadow-md border border-gray-100">
-        <h3 className="text-xl font-semibold mb-6 text-gray-800 border-b pb-2">
-          Управління книжковим фондом (FR-11)
-        </h3>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b pb-4">
+          <h3 className="text-xl font-semibold text-gray-800">
+            Управління книжковим фондом
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setIsIssueModalOpen(true)}
+              className="px-3.5 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition shadow-sm text-sm flex items-center gap-1.5"
+            >
+              📖 Видати (FR-5)
+            </button>
+            <button
+              onClick={() => setIsReturnModalOpen(true)}
+              className="px-3.5 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition shadow-sm text-sm flex items-center gap-1.5"
+            >
+              📥 Повернути (FR-6)
+            </button>
+          </div>
+        </div>
 
         {books.length === 0 ? (
           <p className="text-gray-500 text-center py-4">Книг у базі поки немає.</p>
@@ -229,11 +254,33 @@ export default function Admin() {
         )}
       </div>
 
-      {/* Модальне вікно редагування */}
+      {/* Модальне вікно редагування (FR-11) */}
       {editingBook && (
         <EditBookModal
           book={editingBook}
           onClose={() => setEditingBook(null)}
+          onSuccess={(msg) => {
+            setStatus({ type: 'success', message: msg });
+            fetchBooks();
+          }}
+        />
+      )}
+
+      {/* Модальне вікно видачі книги (FR-5) */}
+      {isIssueModalOpen && (
+        <IssueBookModal
+          onClose={() => setIsIssueModalOpen(false)}
+          onSuccess={(msg) => {
+            setStatus({ type: 'success', message: msg });
+            fetchBooks();
+          }}
+        />
+      )}
+
+      {/* Модальне вікно повернення книги (FR-6) */}
+      {isReturnModalOpen && (
+        <ReturnBookModal
+          onClose={() => setIsReturnModalOpen(false)}
           onSuccess={(msg) => {
             setStatus({ type: 'success', message: msg });
             fetchBooks();

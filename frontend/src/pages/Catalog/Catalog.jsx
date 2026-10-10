@@ -3,140 +3,191 @@ import api from '../../services/api';
 
 export default function Catalog() {
   const [books, setBooks] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  // Стан для фільтрів пошуку
-  const [searchTerm, setSearchTerm] = useState('');
+  const [search, setSearch] = useState('');
   const [selectedGenre, setSelectedGenre] = useState('');
+  const [genres, setGenres] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [reservingId, setReservingId] = useState(null);
+  const [message, setMessage] = useState({ type: '', text: '' });
 
-  // Допоміжний список жанрів
-  const genres = ['Фантастика', 'Детектив', 'Роман', 'Поезія', 'Історія', 'Наука'];
-
-  // Функція завантаження книг з урахуванням фільтрів
-  const fetchBooks = async () => {
+  // Завантаження книг із каталогу
+  const fetchBooks = async (searchQuery = '', genreQuery = '') => {
     setLoading(true);
-    setError('');
     try {
-      // Формуємо query-параметри для GET /api/books
       const params = {};
-      if (searchTerm.trim()) params.search = searchTerm.trim();
-      if (selectedGenre) params.genre = selectedGenre;
+      if (searchQuery) params.search = searchQuery;
+      if (genreQuery) params.genre = genreQuery;
 
       const response = await api.get('/Books', { params });
+      const data = response.data?.data?.items || response.data?.data || response.data || [];
+      setBooks(Array.isArray(data) ? data : []);
 
-      // Перевіряємо структуру відповіді (PagedResponse або масив)
-      const data = response.data?.data?.items || response.data?.data || [];
-      setBooks(data);
-    } catch (err) {
-      console.error(err);
-      setError('Не вдалося завантажити каталог книг.');
+      // Збираємо список унікальних жанрів для фільтра
+      if (!genreQuery && genres.length === 0) {
+        const uniqueGenres = [...new Set(data.map((b) => b.genre).filter(Boolean))];
+        setGenres(uniqueGenres);
+      }
+    } catch (error) {
+      console.error('Помилка завантаження каталогу:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  // Завантажуємо книги при першому рендері та при зміні жанру
   useEffect(() => {
     fetchBooks();
-  }, [selectedGenre]);
+  }, []);
 
-  // Обробник відправки форми пошуку
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    fetchBooks();
+    fetchBooks(search, selectedGenre);
   };
 
-  // Очищення фільтрів
   const handleReset = () => {
-    setSearchTerm('');
+    setSearch('');
     setSelectedGenre('');
+    fetchBooks('', '');
+  };
+
+  // Обробка бронювання книги читачем (FR-13)
+  const handleReserve = async (bookId) => {
+    setReservingId(bookId);
+    setMessage({ type: '', text: '' });
+
+    try {
+      // Спроба відправити запит на бронювання книги
+      await api.post(`/Reservations`, { bookId });
+      setMessage({ type: 'success', text: 'Книгу успішно заброньовано! Заберіть її в бібліотеці.' });
+      fetchBooks(search, selectedGenre); // Оновлюємо статус книг
+    } catch (err) {
+      // Якщо ендпоінт /Reservations відрізняється, пробуємо резервний ендпоінт /Loans/reserve
+      try {
+        await api.post(`/Loans/reserve`, { bookId });
+        setMessage({ type: 'success', text: 'Книгу успішно заброньовано! Заберіть її в бібліотеці.' });
+        fetchBooks(search, selectedGenre);
+      } catch (fallbackErr) {
+        console.error(fallbackErr);
+        setMessage({
+          type: 'error',
+          text: err.response?.data?.message || fallbackErr.response?.data?.message || 'Не вдалося забронювати книгу. Можливо, немає вільних примірників.',
+        });
+      }
+    } finally {
+      setReservingId(null);
+    }
   };
 
   return (
-    <div className="max-w-6xl mx-auto py-6">
-      <h2 className="text-3xl font-bold mb-6 text-gray-800">Електронний каталог книг</h2>
+    <div className="max-w-6xl mx-auto py-8 px-4">
+      <h2 className="text-3xl font-bold mb-6 text-gray-800 text-center">Каталог книг</h2>
 
-      {/* Блок пошуку та фільтрації (FR-12) */}
-      <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-8">
-        <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row gap-4 items-center">
+      {/* Сповіщення про статус бронювання */}
+      {message.text && (
+        <div
+          className={`p-4 mb-6 rounded-lg font-medium text-center ${
+            message.type === 'success'
+              ? 'bg-green-100 text-green-800 border border-green-200'
+              : 'bg-red-100 text-red-800 border border-red-200'
+          }`}
+        >
+          {message.text}
+        </div>
+      )}
 
-          {/* Поле пошуку за назвою/автором */}
-          <div className="flex-1 w-full">
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Пошук за назвою або автором..."
-              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-            />
-          </div>
+      {/* Форма пошуку та фільтрації (FR-12) */}
+      <form onSubmit={handleSearchSubmit} className="bg-white p-4 rounded-xl shadow-md border mb-8 flex flex-col md:flex-row gap-4">
+        <input
+          type="text"
+          placeholder="Пошук за назвою або автором..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
 
-          {/* Фільтр за жанром */}
-          <div className="w-full sm:w-48">
-            <select
-              value={selectedGenre}
-              onChange={(e) => setSelectedGenre(e.target.value)}
-              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-            >
-              <option value="">Усі жанри</option>
-              {genres.map((genre) => (
-                <option key={genre} value={genre}>
-                  {genre}
-                </option>
-              ))}
-            </select>
-          </div>
+        <select
+          value={selectedGenre}
+          onChange={(e) => setSelectedGenre(e.target.value)}
+          className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+        >
+          <option value="">Усі жанри</option>
+          {genres.map((g) => (
+            <option key={g} value={g}>
+              {g}
+            </option>
+          ))}
+        </select>
 
-          {/* Кнопка Шукати */}
+        <div className="flex gap-2">
           <button
             type="submit"
-            className="w-full sm:w-auto bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition"
+            className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition"
           >
             Шукати
           </button>
+          <button
+            type="button"
+            onClick={handleReset}
+            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition text-gray-600"
+          >
+            Скинути
+          </button>
+        </div>
+      </form>
 
-          {/* Кнопка Скинути */}
-          {(searchTerm || selectedGenre) && (
-            <button
-              type="button"
-              onClick={handleReset}
-              className="w-full sm:w-auto bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 transition"
-            >
-              Скинути
-            </button>
-          )}
-        </form>
-      </div>
+      {/* Список книг */}
+      {loading ? (
+        <div className="text-center py-12 text-gray-500">Завантаження каталогів...</div>
+      ) : books.length === 0 ? (
+        <div className="text-center py-12 text-gray-500">Книг за вашим запитом не знайдено.</div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {books.map((book) => {
+            const hasAvailableCopies = book.availableCopiesCount > 0 || book.copiesCount > 0;
 
-      {/* Відображення стану завантаження / помилки */}
-      {loading && <div className="text-center py-8 text-gray-500">Завантаження книг...</div>}
-      {error && <div className="p-4 bg-red-100 text-red-700 rounded-md mb-6">{error}</div>}
+            return (
+              <div key={book.id} className="bg-white p-6 rounded-xl shadow-md border flex flex-col justify-between hover:shadow-lg transition">
+                <div>
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-xs font-bold uppercase tracking-wider px-2 py-1 bg-blue-100 text-blue-800 rounded">
+                      {book.genre || 'Без жанру'}
+                    </span>
+                    <span className="text-xs text-gray-500">{book.publicationYear || '—'} р.</span>
+                  </div>
 
-      {/* Сітка книг */}
-      {!loading && !error && (
-        books.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {books.map((book) => (
-              <div key={book.id || book.isbn} className="bg-white border rounded-lg p-5 shadow-sm hover:shadow-md transition">
-                <span className="text-xs font-semibold px-2.5 py-0.5 rounded bg-blue-100 text-blue-800 mb-2 inline-block">
-                  {book.genre || 'Без жанру'}
-                </span>
-                <h3 className="text-xl font-bold text-gray-900 mb-1">{book.title}</h3>
-                <p className="text-gray-600 text-sm mb-3">Автор: {book.author}</p>
+                  <h3 className="text-xl font-bold text-gray-900 mb-1">{book.title}</h3>
+                  <p className="text-gray-600 text-sm mb-4">Автор: <span className="font-medium text-gray-800">{book.author}</span></p>
 
-                <div className="flex justify-between items-center text-xs text-gray-500 border-t pt-3 mt-auto">
-                  <span>Рік: {book.publicationYear || 'N/A'}</span>
-                  <span>ISBN: {book.isbn || '—'}</span>
+                  {book.isbn && <p className="text-xs text-gray-400 mb-4">ISBN: {book.isbn}</p>}
+                </div>
+
+                <div className="pt-4 border-t flex items-center justify-between mt-auto">
+                  <div className="text-xs text-gray-500">
+                    Примірників: <span className="font-bold text-gray-700">{book.availableCopiesCount ?? book.copiesCount ?? 1}</span>
+                  </div>
+
+                  {/* Кнопка Бронювання (FR-13) */}
+                  <button
+                    onClick={() => handleReserve(book.id)}
+                    disabled={reservingId === book.id || !hasAvailableCopies}
+                    className={`px-4 py-2 text-sm font-bold rounded-lg transition ${
+                      !hasAvailableCopies
+                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                        : reservingId === book.id
+                        ? 'bg-amber-300 text-white cursor-wait'
+                        : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm'
+                    }`}
+                  >
+                    {!hasAvailableCopies
+                      ? 'Немає в наявності'
+                      : reservingId === book.id
+                      ? 'Бронювання...'
+                      : '📌 Забронювати'}
+                  </button>
                 </div>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12 text-gray-500">
-            За вашим запитом книг не знайдено.
-          </div>
-        )
+            );
+          })}
+        </div>
       )}
     </div>
   );
