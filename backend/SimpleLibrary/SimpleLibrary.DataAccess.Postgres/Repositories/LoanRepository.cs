@@ -54,5 +54,13 @@ namespace SimpleLibrary.DataAccess.Postgres.Repositories
             return await _context.Loans
                 .CountAsync(l => l.ReaderId == readerId && (l.Status == LoanStatus.Pending || l.Status == LoanStatus.Active));
         }
+
+        public async Task<bool> HasActiveLoanForBookAsync(Guid readerId, Guid bookId)
+        {
+            return await _context.Loans
+                .AnyAsync(l => l.ReaderId == readerId
+                            && l.BookCopy!.BookId == bookId
+                            && (l.Status == LoanStatus.Pending || l.Status == LoanStatus.Active));
+        }
     }
 }

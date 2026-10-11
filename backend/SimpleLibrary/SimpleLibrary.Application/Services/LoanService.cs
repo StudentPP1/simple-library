@@ -18,18 +18,29 @@ namespace SimpleLibrary.Application.Services
 
         public async Task<ServiceResponse<LoanResponse>> ReserveBookAsync(Guid bookId, Guid readerId)
         {
-            var availableCopy = await _unitOfWork.BookRepository.GetAvailableCopyAsync(bookId);
-            if (availableCopy == null)
+            var book = await _unitOfWork.BookRepository.GetByIdAsync(bookId);
+            if (book == null)
             {
-                return ServiceResponse<LoanResponse>.Fail("На жаль, усі примірники цієї книги зараз зайняті.", ErrorType.Conflict);
+                return ServiceResponse<LoanResponse>.Fail("Книгу не знайдено.", ErrorType.NotFound);
             }
 
             var activeLoansCount = await _unitOfWork.LoanRepository.GetActiveLoansCountForReaderAsync(readerId);
             if (activeLoansCount >= 5)
             {
-                return ServiceResponse<LoanResponse>.Fail("Ви досягли ліміту: не більше 5 активних книг або бронювань одночасно.", ErrorType.Conflict);
+                return ServiceResponse<LoanResponse>.Fail("Ви досягли ліміту: не більше 5 активних книг або бронювань.", ErrorType.Conflict);
             }
 
+            var hasThisBook = await _unitOfWork.LoanRepository.HasActiveLoanForBookAsync(readerId, bookId);
+            if (hasThisBook)
+            {
+                return ServiceResponse<LoanResponse>.Fail("Ви вже забронювали або взяли цю книгу.", ErrorType.Conflict);
+            }
+
+            var availableCopy = await _unitOfWork.BookRepository.GetAvailableCopyAsync(bookId);
+            if (availableCopy == null)
+            {
+                return ServiceResponse<LoanResponse>.Fail("На жаль, усі примірники цієї книги зараз зайняті.", ErrorType.Conflict);
+            }
 
             availableCopy.ChangeStatus(CopyStatus.Reserved);
 
@@ -48,6 +59,7 @@ namespace SimpleLibrary.Application.Services
             var savedLoan = await _unitOfWork.LoanRepository.GetByIdAsync(loan.Id);
             return ServiceResponse<LoanResponse>.Ok(MapToResponse(savedLoan!));
         }
+
 
         public async Task<ServiceResponse<LoanResponse>> IssueBookAsync(Guid loanId, Guid librarianId, int days)
         {

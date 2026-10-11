@@ -10,5 +10,6 @@ namespace SimpleLibrary.Core.Interfaces.Repositories
         Task<IEnumerable<Loan>> GetActiveLoansAsync();
 
         Task<int> GetActiveLoansCountForReaderAsync(Guid readerId);
+        Task<bool> HasActiveLoanForBookAsync(Guid readerId, Guid bookId);
     }
 }
