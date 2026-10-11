@@ -11,8 +11,9 @@ namespace SimpleLibrary.DataAccess.Postgres.Configurations
             builder.HasKey(c => c.Id);
 
             builder.Property(c => c.InventoryNumber).IsRequired().HasMaxLength(50);
-
             builder.HasIndex(c => c.InventoryNumber).IsUnique();
+
+            builder.Property(c => c.Status).IsConcurrencyToken();
         }
     }
 }

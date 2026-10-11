@@ -35,5 +35,21 @@ namespace SimpleLibrary.Core.Models
             ReservedAt = DateTime.UtcNow;
             Status = LoanStatus.Pending;
         }
+
+        public void IssueToReader(Guid librarianId, int daysToReturn)
+        {
+            Status = LoanStatus.Active;
+            IssuedByUserId = librarianId;
+            IssuedAt = DateTime.UtcNow;
+            DueDate = DateTime.UtcNow.AddDays(daysToReturn);
+        }
+
+        public void ReturnBook(Guid librarianId)
+        {
+            Status = LoanStatus.Returned;
+            ReturnedByUserId = librarianId;
+            ReturnedAt = DateTime.UtcNow;
+        }
+
     }
 }

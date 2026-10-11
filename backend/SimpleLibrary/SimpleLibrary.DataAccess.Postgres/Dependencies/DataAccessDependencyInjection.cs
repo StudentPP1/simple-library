@@ -18,6 +18,7 @@ namespace SimpleLibrary.DataAccess.Postgres.Dependencies
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IBookRepository, BookRepository>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
+            services.AddScoped<ILoanRepository, LoanRepository>();
 
             return services;
         }
