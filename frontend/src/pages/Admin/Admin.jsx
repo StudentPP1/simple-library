@@ -3,6 +3,7 @@ import api from '../../services/api';
 import EditBookModal from './EditBookModal';
 import IssueBookModal from './IssueBookModal';
 import ReturnBookModal from './ReturnBookModal';
+import DebtorsModal from './DebtorsModal';
 
 export default function Admin() {
   const [formData, setFormData] = useState({
@@ -18,12 +19,12 @@ export default function Admin() {
   const [editingBook, setEditingBook] = useState(null);
   const [status, setStatus] = useState({ type: '', message: '' });
   const [isLoading, setIsLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
 
-  // Стан для відкриття модальних вікон
   const [isIssueModalOpen, setIsIssueModalOpen] = useState(false);
   const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
+  const [isDebtorsModalOpen, setIsDebtorsModalOpen] = useState(false);
 
-  // Завантаження списку книг
   const fetchBooks = async () => {
     try {
       const response = await api.get('/Books');
@@ -69,7 +70,7 @@ export default function Admin() {
         copiesCount: 1,
       });
 
-      fetchBooks(); // Оновлюємо список після додавання
+      fetchBooks();
     } catch (error) {
       console.error('Помилка при збереженні:', error);
       setStatus({
@@ -81,11 +82,37 @@ export default function Admin() {
     }
   };
 
+  const handleDeleteBook = async (book) => {
+    const confirmed = window.confirm(
+      `Ви дійсно бажаєте видалити книгу "${book.title}"?\n\nЦю дію неможливо скасувати.`
+    );
+
+    if (!confirmed) return;
+
+    setDeletingId(book.id);
+    setStatus({ type: '', message: '' });
+
+    try {
+      await api.delete(`/Books/${book.id}`);
+      setStatus({ type: 'success', message: `Книгу "${book.title}" успішно видалено з каталогу!` });
+      fetchBooks();
+    } catch (err) {
+      console.error('Помилка видалення книги:', err);
+      setStatus({
+        type: 'error',
+        message:
+          err.response?.data?.message ||
+          'Не вдалося видалити книгу. Можливо, деякі її примірники зараз видані читачам.',
+      });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <div className="max-w-3xl mx-auto py-8 px-4">
       <h2 className="text-3xl font-bold mb-8 text-gray-800 text-center">Панель бібліотекаря</h2>
 
-      {/* Повідомлення про статус операцій */}
       {status.message && (
         <div
           className={`p-4 mb-6 rounded-lg font-medium ${
@@ -98,10 +125,10 @@ export default function Admin() {
         </div>
       )}
 
-      {/* Форма додавання нової книги (FR-4) */}
+      {/* Форма додавання нової книги */}
       <div className="bg-white p-8 rounded-xl shadow-md border border-gray-100 mb-8">
         <h3 className="text-xl font-semibold mb-6 text-blue-700 border-b pb-2">
-          Додати нове надходження (FR-4)
+          Додати нове надходження
         </h3>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -208,7 +235,7 @@ export default function Admin() {
         </form>
       </div>
 
-      {/* Список книг для редагування (FR-11) та панель дій (FR-5, FR-6) */}
+      {/* Список книг та панель дій */}
       <div className="bg-white p-8 rounded-xl shadow-md border border-gray-100">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b pb-4">
           <h3 className="text-xl font-semibold text-gray-800">
@@ -217,15 +244,21 @@ export default function Admin() {
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setIsIssueModalOpen(true)}
-              className="px-3.5 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition shadow-sm text-sm flex items-center gap-1.5"
+              className="px-3 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition shadow-sm text-xs flex items-center gap-1"
             >
-              📖 Видати (FR-5)
+              📖 Видати
             </button>
             <button
               onClick={() => setIsReturnModalOpen(true)}
-              className="px-3.5 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition shadow-sm text-sm flex items-center gap-1.5"
+              className="px-3 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition shadow-sm text-xs flex items-center gap-1"
             >
-              📥 Повернути (FR-6)
+              📥 Повернути
+            </button>
+            <button
+              onClick={() => setIsDebtorsModalOpen(true)}
+              className="px-3 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition shadow-sm text-xs flex items-center gap-1"
+            >
+              📋 Боржники
             </button>
           </div>
         </div>
@@ -242,19 +275,28 @@ export default function Admin() {
                     {book.author} | <span className="text-blue-600">{book.genre || 'Без жанру'}</span> | Рік: {book.publicationYear || '—'}
                   </p>
                 </div>
-                <button
-                  onClick={() => setEditingBook(book)}
-                  className="px-4 py-2 bg-amber-500 text-white text-sm font-semibold rounded-lg hover:bg-amber-600 transition shadow-sm whitespace-nowrap"
-                >
-                  ✏️ Редагувати
-                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setEditingBook(book)}
+                    className="px-3 py-1.5 bg-amber-500 text-white text-xs font-semibold rounded-lg hover:bg-amber-600 transition shadow-sm whitespace-nowrap"
+                  >
+                    ✏️ Редагувати
+                  </button>
+                  <button
+                    onClick={() => handleDeleteBook(book)}
+                    disabled={deletingId === book.id}
+                    className="px-3 py-1.5 bg-rose-600 text-white text-xs font-semibold rounded-lg hover:bg-rose-700 transition shadow-sm whitespace-nowrap disabled:bg-rose-300"
+                  >
+                    {deletingId === book.id ? 'Видалення...' : '🗑️ Видалити'}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
 
-      {/* Модальне вікно редагування (FR-11) */}
       {editingBook && (
         <EditBookModal
           book={editingBook}
@@ -266,7 +308,6 @@ export default function Admin() {
         />
       )}
 
-      {/* Модальне вікно видачі книги (FR-5) */}
       {isIssueModalOpen && (
         <IssueBookModal
           onClose={() => setIsIssueModalOpen(false)}
@@ -277,7 +318,6 @@ export default function Admin() {
         />
       )}
 
-      {/* Модальне вікно повернення книги (FR-6) */}
       {isReturnModalOpen && (
         <ReturnBookModal
           onClose={() => setIsReturnModalOpen(false)}
@@ -285,6 +325,12 @@ export default function Admin() {
             setStatus({ type: 'success', message: msg });
             fetchBooks();
           }}
+        />
+      )}
+
+      {isDebtorsModalOpen && (
+        <DebtorsModal
+          onClose={() => setIsDebtorsModalOpen(false)}
         />
       )}
     </div>

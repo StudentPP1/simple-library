@@ -51,7 +51,7 @@ export default function ReturnBookModal({ onClose, onSuccess }) {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-xl max-w-2xl w-full p-6 shadow-xl border max-h-[85vh] flex flex-col">
         <div className="flex justify-between items-center mb-4 border-b pb-2">
-          <h3 className="text-xl font-bold text-gray-800">📥 Повернення книг (FR-6)</h3>
+          <h3 className="text-xl font-bold text-gray-800">📥 Повернення книг </h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 font-bold text-lg">
             ✕
           </button>
