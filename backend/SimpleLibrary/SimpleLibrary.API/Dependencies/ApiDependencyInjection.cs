@@ -14,6 +14,8 @@ namespace SimpleLibrary.API.Dependencies
         public static IServiceCollection AddApiServices(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+            services.AddScoped<IEmailSender, SmtpEmailSender>();
+
 
             var jwtSecretKey = configuration["JwtSettings:SecretKey"];
             if (string.IsNullOrWhiteSpace(jwtSecretKey) || Encoding.UTF8.GetByteCount(jwtSecretKey) < 32)

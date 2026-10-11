@@ -7,5 +7,8 @@ namespace SimpleLibrary.Core.Interfaces.Services
     {
         Task<ServiceResponse<User>> RegisterAsync(RegisterRequest request);
         Task<ServiceResponse<string>> AuthenticateAsync(LoginRequest request);
+
+        Task<ServiceResponse<bool>> ForgotPasswordAsync(ForgotPasswordRequest request);
+        Task<ServiceResponse<bool>> ResetPasswordAsync(ResetPasswordRequest request);
     }
 }
