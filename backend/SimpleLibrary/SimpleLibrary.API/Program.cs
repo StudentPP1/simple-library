@@ -40,6 +40,8 @@ using (var scope = app.Services.CreateScope())
         var context = services.GetRequiredService<LibraryDbContext>();
 
         context.Database.Migrate();
+
+        await DbSeeder.SeedAsync(context);
     }
     catch (Exception ex)
     {
