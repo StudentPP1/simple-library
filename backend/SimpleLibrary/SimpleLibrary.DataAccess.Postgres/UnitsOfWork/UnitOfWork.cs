@@ -9,12 +9,14 @@ namespace SimpleLibrary.DataAccess.Postgres.UnitsOfWork
 
         public IUserRepository UserRepository { get; }
         public IBookRepository BookRepository { get; }
+        public ILoanRepository LoanRepository { get; }
 
-        public UnitOfWork(LibraryDbContext context, IUserRepository userRepository, IBookRepository bookRepository)
+        public UnitOfWork(LibraryDbContext context, IUserRepository userRepository, IBookRepository bookRepository, ILoanRepository loanRepository)
         {
             _context = context;
             UserRepository = userRepository;
             BookRepository = bookRepository;
+            LoanRepository = loanRepository;
         }
 
         public async Task<int> SaveChangesAsync()

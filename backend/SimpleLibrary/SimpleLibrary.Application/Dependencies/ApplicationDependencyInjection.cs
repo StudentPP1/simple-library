@@ -10,6 +10,7 @@ namespace SimpleLibrary.Application.Dependencies
         {
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IBookService, BookService>();
+            services.AddScoped<ILoanService, LoanService>();
 
             return services;
         }

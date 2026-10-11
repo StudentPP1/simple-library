@@ -24,5 +24,10 @@ namespace SimpleLibrary.Core.Models
             InventoryNumber = inventoryNumber;
             Status = CopyStatus.Available; 
         }
+
+        public void ChangeStatus(CopyStatus newStatus)
+        {
+            Status = newStatus;
+        }
     }
 }

@@ -2,59 +2,31 @@ import { useState, useEffect } from 'react';
 import api from '../../services/api';
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState('active'); // 'active' або 'history'
+  const [activeTab, setActiveTab] = useState('active');
   const [activeLoans, setActiveLoans] = useState([]);
   const [historyLoans, setHistoryLoans] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  // Завантажуємо активні видачі
-  const fetchActiveLoans = async () => {
-    try {
-      const response = await api.get('/Loans/my');
-      const data = response.data?.data?.items || response.data?.data || response.data || [];
-      setActiveLoans(Array.isArray(data) ? data.filter((l) => l.status !== 'Returned') : []);
-    } catch (err) {
-      try {
-        const fallbackRes = await api.get('/Loans/me');
-        const fallbackData = fallbackRes.data?.data?.items || fallbackRes.data?.data || fallbackRes.data || [];
-        setActiveLoans(Array.isArray(fallbackData) ? fallbackData.filter((l) => l.status !== 'Returned') : []);
-      } catch (fallbackErr) {
-        console.error('Помилка завантаження активних видач:', fallbackErr);
-      }
-    }
-  };
-
-  // Завантажуємо історію закритих видач
-  const fetchHistoryLoans = async () => {
-    try {
-      const response = await api.get('/Loans/history');
-      const data = response.data?.data?.items || response.data?.data || response.data || [];
-      setHistoryLoans(Array.isArray(data) ? data : []);
-    } catch (err) {
-      try {
-        const fallbackRes = await api.get('/Loans/my/history');
-        const fallbackData = fallbackRes.data?.data?.items || fallbackRes.data?.data || fallbackRes.data || [];
-        setHistoryLoans(Array.isArray(fallbackData) ? fallbackData : []);
-      } catch (fallbackErr) {
-        try {
-          const myRes = await api.get('/Loans/my');
-          const myData = myRes.data?.data?.items || myRes.data?.data || myRes.data || [];
-          setHistoryLoans(
-            Array.isArray(myData) ? myData.filter((l) => l.status === 'Returned' || l.returnedAt) : []
-          );
-        } catch (myErr) {
-          console.error('Помилка завантаження історії читань:', myErr);
-        }
-      }
-    }
-  };
 
   const loadData = async () => {
     setLoading(true);
-    setError('');
-    await Promise.all([fetchActiveLoans(), fetchHistoryLoans()]);
-    setLoading(false);
+    try {
+      const response = await api.get('/Loans/my');
+      const loans = response.data?.data || [];
+
+      // Активні видачі та бронювання
+      setActiveLoans(
+        loans.filter((l) => l.status !== 'Returned' && l.status !== 2 && !l.returnedAt)
+      );
+
+      // Історія читань
+      setHistoryLoans(
+        loans.filter((l) => l.status === 'Returned' || l.status === 2 || l.returnedAt)
+      );
+    } catch (err) {
+      console.error('Помилка завантаження активних видач користувача:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -62,7 +34,7 @@ export default function Dashboard() {
   }, []);
 
   const isOverdue = (dueDate, status) => {
-    if (!dueDate || status === 'Returned') return false;
+    if (!dueDate || status === 'Returned' || status === 2) return false;
     const due = new Date(dueDate);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -89,19 +61,13 @@ export default function Dashboard() {
 
         <button
           onClick={loadData}
-          className="px-4 py-2 bg-blue-50 text-blue-600 font-semibold rounded-lg hover:bg-blue-100 transition text-sm self-start md:self-auto flex items-center gap-2"
+          className="px-4 py-2 bg-blue-50 text-blue-600 font-semibold rounded-lg hover:bg-blue-100 transition text-sm flex items-center gap-2"
         >
           🔄 Оновити дані
         </button>
       </div>
 
-      {error && (
-        <div className="p-4 mb-6 bg-red-100 text-red-800 rounded-lg border border-red-200">
-          {error}
-        </div>
-      )}
-
-      {/* Перемикач вкладок */}
+      {/* Вкладки */}
       <div className="flex border-b mb-6 border-gray-200">
         <button
           onClick={() => setActiveTab('active')}
@@ -132,15 +98,15 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* Вкладка 1: Поточні книги */}
+      {/* Вкладка 1: Активні */}
       {activeTab === 'active' && (
         <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
           {loading ? (
-            <div className="py-12 text-center text-gray-500">Завантаження ваших книг...</div>
+            <div className="py-12 text-center text-gray-500">Завантаження вашої інформації...</div>
           ) : activeLoans.length === 0 ? (
             <div className="py-12 text-center text-gray-500">
               <p className="text-lg font-medium text-gray-700 mb-2">У вас немає активних книг на руках</p>
-              <p className="text-sm text-gray-400">Перейдіть у каталог, щоб забронювати або обрати нову книгу.</p>
+              <p className="text-sm text-gray-400">Перейдіть у каталог, щоб забронювати нову книгу.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -163,14 +129,14 @@ export default function Dashboard() {
                           className={`text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
                             overdue
                               ? 'bg-red-200 text-red-900 border border-red-300'
-                              : loan.status === 'Reserved'
+                              : loan.status === 'Reserved' || loan.status === 0
                               ? 'bg-amber-100 text-amber-800'
                               : 'bg-green-100 text-green-800'
                           }`}
                         >
                           {overdue
                             ? '⚠️ Прострочено'
-                            : loan.status === 'Reserved'
+                            : loan.status === 'Reserved' || loan.status === 0
                             ? '📌 Заброньовано'
                             : '📖 На руках'}
                         </span>
@@ -183,11 +149,11 @@ export default function Dashboard() {
                       </div>
 
                       <h4 className="text-lg font-bold text-gray-900 mb-1">
-                        {loan.bookTitle || loan.bookCopy?.book?.title || 'Назва книги'}
+                        {loan.bookTitle || loan.book?.title || 'Назва книги'}
                       </h4>
 
                       <p className="text-sm text-gray-600 mb-4">
-                        Автор: <span className="font-medium text-gray-800">{loan.bookAuthor || loan.bookCopy?.book?.author || '—'}</span>
+                        Автор: <span className="font-medium text-gray-800">{loan.bookAuthor || loan.book?.author || '—'}</span>
                       </p>
                     </div>
 
@@ -220,7 +186,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Вкладка 2: Історія читань */}
+      {/* Вкладка 2: Історія */}
       {activeTab === 'history' && (
         <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
           <h3 className="text-xl font-bold text-gray-800 mb-6 border-b pb-3 flex items-center gap-2">
@@ -235,7 +201,7 @@ export default function Dashboard() {
           ) : historyLoans.length === 0 ? (
             <div className="py-12 text-center text-gray-500">
               <p className="text-lg font-medium text-gray-700 mb-2">Історія читань порожня</p>
-              <p className="text-sm text-gray-400">Тут відображатимуться всі закриті видачі після повернення книг.</p>
+              <p className="text-sm text-gray-400">Тут відображатимуться повернуті книги.</p>
             </div>
           ) : (
             <div className="divide-y divide-gray-200">
@@ -243,10 +209,10 @@ export default function Dashboard() {
                 <div key={loan.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <h4 className="font-bold text-gray-900 text-base">
-                      {loan.bookTitle || loan.bookCopy?.book?.title || 'Назва книги'}
+                      {loan.bookTitle || loan.book?.title || 'Назва книги'}
                     </h4>
                     <p className="text-sm text-gray-600">
-                      Автор: <span className="font-medium text-gray-800">{loan.bookAuthor || loan.bookCopy?.book?.author || '—'}</span>
+                      Автор: <span className="font-medium text-gray-800">{loan.bookAuthor || loan.book?.author || '—'}</span>
                     </p>
                   </div>
 
@@ -255,7 +221,7 @@ export default function Dashboard() {
                       📅 Видано: <strong className="text-gray-700">{loan.issuedAt ? new Date(loan.issuedAt).toLocaleDateString() : '—'}</strong>
                     </div>
                     <div className="text-green-700">
-                      ✅ Повернуто: <strong>{loan.returnedAt || loan.actualReturnDate ? new Date(loan.returnedAt || loan.actualReturnDate).toLocaleDateString() : '—'}</strong>
+                      ✅ Повернуто: <strong>{loan.returnedAt ? new Date(loan.returnedAt).toLocaleDateString() : '—'}</strong>
                     </div>
                   </div>
                 </div>

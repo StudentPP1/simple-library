@@ -52,7 +52,7 @@ namespace SimpleLibrary.DataAccess.Postgres.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Books");
+                    b.ToTable("Books", (string)null);
                 });
 
             modelBuilder.Entity("SimpleLibrary.Core.Models.BookCopy", b =>
@@ -79,7 +79,7 @@ namespace SimpleLibrary.DataAccess.Postgres.Migrations
                     b.HasIndex("InventoryNumber")
                         .IsUnique();
 
-                    b.ToTable("BookCopies");
+                    b.ToTable("BookCopies", (string)null);
                 });
 
             modelBuilder.Entity("SimpleLibrary.Core.Models.Loan", b =>
@@ -125,7 +125,7 @@ namespace SimpleLibrary.DataAccess.Postgres.Migrations
 
                     b.HasIndex("ReturnedByUserId");
 
-                    b.ToTable("Loans");
+                    b.ToTable("Loans", (string)null);
                 });
 
             modelBuilder.Entity("SimpleLibrary.Core.Models.User", b =>
@@ -156,7 +156,7 @@ namespace SimpleLibrary.DataAccess.Postgres.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("SimpleLibrary.Core.Models.BookCopy", b =>

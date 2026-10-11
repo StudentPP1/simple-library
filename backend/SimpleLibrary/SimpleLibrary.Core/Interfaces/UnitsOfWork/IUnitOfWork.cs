@@ -6,6 +6,7 @@ namespace SimpleLibrary.Core.Interfaces.UnitsOfWork
     {
         IUserRepository UserRepository { get; }
         IBookRepository BookRepository { get; }
+        ILoanRepository LoanRepository { get; }
 
         Task<int> SaveChangesAsync();
     }
