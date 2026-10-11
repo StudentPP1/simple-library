@@ -79,6 +79,48 @@ namespace SimpleLibrary.API.Controllers
             }
         }
 
+        /// <summary>
+        /// Запит на відновлення пароля (відправка email).
+        /// </summary>
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+        {
+            try
+            {
+                var response = await _authService.ForgotPasswordAsync(request);
+                return Ok(new ApiResponse<bool>(true, response.Message, true));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Помилка під час запиту на відновлення пароля.");
+                return StatusCode(500, new ApiResponse<bool>(false, "Внутрішня помилка сервера.", false));
+            }
+        }
+
+        /// <summary>
+        /// Встановлення нового пароля за допомогою токена з email.
+        /// </summary>
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+        {
+            try
+            {
+                var response = await _authService.ResetPasswordAsync(request);
+
+                if (!response.Success)
+                {
+                    return MapErrorToHttpResponse(response);
+                }
+
+                return Ok(new ApiResponse<bool>(true, response.Message, true));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Помилка під час скидання пароля.");
+                return StatusCode(500, new ApiResponse<bool>(false, "Внутрішня помилка сервера.", false));
+            }
+        }
+
         private IActionResult MapErrorToHttpResponse<T>(ServiceResponse<T> response)
         {
             var apiResponse = new ApiResponse<T>(false, response.Message, default);
