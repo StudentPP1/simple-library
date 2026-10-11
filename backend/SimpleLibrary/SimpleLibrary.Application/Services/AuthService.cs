@@ -1,10 +1,11 @@
-﻿using SimpleLibrary.Core;
+﻿using Microsoft.Extensions.Configuration;
+using SimpleLibrary.Core;
 using SimpleLibrary.Core.DTOs.Requests;
 using SimpleLibrary.Core.Enums;
 using SimpleLibrary.Core.Interfaces.Services;
 using SimpleLibrary.Core.Interfaces.UnitsOfWork;
 using SimpleLibrary.Core.Models;
-using Microsoft.Extensions.Configuration;
+using System.Security.Cryptography;
 
 namespace SimpleLibrary.Application.Services
 {
@@ -85,7 +86,7 @@ namespace SimpleLibrary.Application.Services
 
             if (user != null)
             {
-                string resetToken = Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper();
+                string resetToken = RandomNumberGenerator.GetHexString(32);
                 DateTime expiry = DateTime.UtcNow.AddHours(1);
 
                 user.SetPasswordResetToken(resetToken, expiry);

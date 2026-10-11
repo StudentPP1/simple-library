@@ -5,6 +5,7 @@ namespace SimpleLibrary.Core.DTOs.Requests
     public class ResetPasswordRequest
     {
         [Required(ErrorMessage = "Email є обов'язковим")]
+        [EmailAddress(ErrorMessage = "Неправильний формат Email")]
         public string Email { get; init; } = string.Empty;
 
         [Required(ErrorMessage = "Токен є обов'язковим")]

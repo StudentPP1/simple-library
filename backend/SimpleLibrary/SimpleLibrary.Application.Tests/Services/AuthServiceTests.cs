@@ -17,6 +17,7 @@ namespace SimpleLibrary.Application.Tests.Services
         private readonly Mock<IUserRepository> _mockUserRepository;
         private readonly Mock<IJwtTokenGenerator> _mockJwtGenerator;
         private readonly Mock<IConfiguration> _mockConfig;
+        private readonly Mock<IEmailSender> _mockEmailSender;
         private readonly AuthService _authService;
 
         public AuthServiceTests()
@@ -25,10 +26,11 @@ namespace SimpleLibrary.Application.Tests.Services
             _mockUserRepository = new Mock<IUserRepository>();
             _mockJwtGenerator = new Mock<IJwtTokenGenerator>();
             _mockConfig = new Mock<IConfiguration>();
+            _mockEmailSender = new Mock<IEmailSender>();
 
             _mockUow.Setup(u => u.UserRepository).Returns(_mockUserRepository.Object);
 
-            _authService = new AuthService(_mockUow.Object, _mockJwtGenerator.Object, _mockConfig.Object);
+            _authService = new AuthService(_mockUow.Object, _mockJwtGenerator.Object, _mockConfig.Object, _mockEmailSender.Object);
         }
 
         [Fact]
