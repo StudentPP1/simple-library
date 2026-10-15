@@ -10,6 +10,9 @@ namespace SimpleLibrary.Core.Models
         public string PasswordHash { get; private set; } = string.Empty;
         public UserRole Role { get; private set; }
 
+        public string? PasswordResetToken { get; private set; }
+        public DateTime? PasswordResetTokenExpiry { get; private set; }
+
         private readonly List<Loan> _loans = new();
         public IReadOnlyCollection<Loan> Loans => _loans.AsReadOnly();
 
@@ -22,6 +25,19 @@ namespace SimpleLibrary.Core.Models
             Email = email;
             PasswordHash = passwordHash;
             Role = role;
+        }
+
+        public void SetPasswordResetToken(string token, DateTime expiry)
+        {
+            PasswordResetToken = token;
+            PasswordResetTokenExpiry = expiry;
+        }
+
+        public void ResetPassword(string newPasswordHash)
+        {
+            PasswordHash = newPasswordHash;
+            PasswordResetToken = null;
+            PasswordResetTokenExpiry = null;
         }
     }
 }
