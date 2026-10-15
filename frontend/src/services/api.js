@@ -9,9 +9,9 @@ const api = axios.create({
   },
 });
 
-// Автоматичне підставляння JWT-токена
+// Перевіряємо обидва ключі токена в localStorage
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('jwt_token') || localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
