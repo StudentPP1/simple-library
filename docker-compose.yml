@@ -30,6 +30,11 @@ services:
       Swagger__Enabled: ${SWAGGER_ENABLED}
       JwtSettings__SecretKey: ${JWT_SECRET_KEY}
       SecuritySettings__LibrarianInviteCode: ${LIBRARIAN_INVITE_CODE}
+      SmtpSettings__Host: ${SMTP_HOST}
+      SmtpSettings__Port: ${SMTP_PORT}
+      SmtpSettings__User: ${SMTP_USER}
+      SmtpSettings__Password: ${SMTP_PASSWORD}
+      SmtpSettings__FromEmail: ${SMTP_FROM_EMAIL}
     ports:
       - "127.0.0.1:${BACKEND_PORT}:8080"
 

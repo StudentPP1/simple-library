@@ -7,6 +7,8 @@ namespace SimpleLibrary.DataAccess.Postgres.Repositories
 {
     public class BookRepository : IBookRepository
     {
+        private const string IcuCollation = "und-x-icu";
+
         private readonly LibraryDbContext _context;
 
         public BookRepository(LibraryDbContext context)
@@ -39,14 +41,15 @@ namespace SimpleLibrary.DataAccess.Postgres.Repositories
 
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
-                string searchLower = searchTerm.ToLower();
-                query = query.Where(b => b.Title.ToLower().Contains(searchLower) ||
-                                         b.Author.ToLower().Contains(searchLower));
+                string searchLower = searchTerm.ToLowerInvariant();
+                query = query.Where(b => EF.Functions.Collate(b.Title, IcuCollation).ToLower().Contains(searchLower) ||
+                                         EF.Functions.Collate(b.Author, IcuCollation).ToLower().Contains(searchLower));
             }
 
             if (!string.IsNullOrWhiteSpace(genre))
             {
-                query = query.Where(b => b.Genre.ToLower() == genre.ToLower());
+                string genreLower = genre.ToLowerInvariant();
+                query = query.Where(b => EF.Functions.Collate(b.Genre, IcuCollation).ToLower() == genreLower);
             }
 
             int totalCount = await query.CountAsync();

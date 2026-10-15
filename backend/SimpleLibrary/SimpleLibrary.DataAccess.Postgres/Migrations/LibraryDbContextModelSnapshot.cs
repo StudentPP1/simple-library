@@ -52,7 +52,7 @@ namespace SimpleLibrary.DataAccess.Postgres.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Books", (string)null);
+                    b.ToTable("Books");
                 });
 
             modelBuilder.Entity("SimpleLibrary.Core.Models.BookCopy", b =>
@@ -70,6 +70,7 @@ namespace SimpleLibrary.DataAccess.Postgres.Migrations
                         .HasColumnType("character varying(50)");
 
                     b.Property<int>("Status")
+                        .IsConcurrencyToken()
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
@@ -79,7 +80,7 @@ namespace SimpleLibrary.DataAccess.Postgres.Migrations
                     b.HasIndex("InventoryNumber")
                         .IsUnique();
 
-                    b.ToTable("BookCopies", (string)null);
+                    b.ToTable("BookCopies");
                 });
 
             modelBuilder.Entity("SimpleLibrary.Core.Models.Loan", b =>
@@ -125,7 +126,7 @@ namespace SimpleLibrary.DataAccess.Postgres.Migrations
 
                     b.HasIndex("ReturnedByUserId");
 
-                    b.ToTable("Loans", (string)null);
+                    b.ToTable("Loans");
                 });
 
             modelBuilder.Entity("SimpleLibrary.Core.Models.User", b =>
@@ -148,6 +149,12 @@ namespace SimpleLibrary.DataAccess.Postgres.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("PasswordResetToken")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("PasswordResetTokenExpiry")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int>("Role")
                         .HasColumnType("integer");
 
@@ -156,7 +163,7 @@ namespace SimpleLibrary.DataAccess.Postgres.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("SimpleLibrary.Core.Models.BookCopy", b =>
