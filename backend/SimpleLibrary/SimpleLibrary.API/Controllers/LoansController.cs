@@ -133,6 +133,31 @@ namespace SimpleLibrary.API.Controllers
             }
         }
 
+        /// <summary>
+        /// Скасування бронювання (FR-13).
+        /// Читач може скасувати свою бронь. Бібліотекар - будь-яку.
+        /// </summary>
+        [HttpPost("{id:guid}/cancel")]
+        public async Task<IActionResult> CancelReservation(Guid id)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                var userRole = User.FindFirstValue(ClaimTypes.Role) ?? "";
+
+                var response = await _loanService.CancelReservationAsync(id, userId, userRole);
+
+                if (!response.Success) return MapErrorToHttpResponse(response);
+
+                return Ok(new ApiResponse<bool>(true, response.Message, response.Data));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Помилка під час скасування бронювання.");
+                return StatusCode(500, new ApiResponse<object>(false, "Внутрішня помилка сервера.", null));
+            }
+        }
+
         private Guid GetCurrentUserId()
         {
             var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);

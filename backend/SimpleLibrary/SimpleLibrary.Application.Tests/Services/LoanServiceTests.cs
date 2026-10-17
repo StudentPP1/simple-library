@@ -114,6 +114,41 @@ namespace SimpleLibrary.Application.Tests.Services
             _mockLoanRepository.Verify(r => r.GetByIdAsync(It.IsAny<Guid>()), Times.Never);
         }
 
+        [Fact]
+        public async Task CancelReservationAsync_AsReader_OwnReservation_ReturnsSuccess()
+        {
+            var loan = new Loan(_readerId, _availableCopy.Id);
+
+            typeof(Loan).GetProperty(nameof(Loan.BookCopy))?.SetValue(loan, _availableCopy);
+
+            _mockLoanRepository.Setup(r => r.GetByIdAsync(loan.Id)).ReturnsAsync(loan);
+
+            var result = await _loanService.CancelReservationAsync(loan.Id, _readerId, UserRole.Reader.ToString());
+
+            Assert.True(result.Success);
+            Assert.Equal(LoanStatus.Cancelled, loan.Status);
+            Assert.Equal(CopyStatus.Available, _availableCopy.Status);
+            _mockUow.Verify(u => u.SaveChangesAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task CancelReservationAsync_AsReader_OtherPersonReservation_ReturnsUnauthorized()
+        {
+            var otherReaderId = Guid.NewGuid();
+            var loan = new Loan(otherReaderId, _availableCopy.Id);
+
+            typeof(Loan).GetProperty(nameof(Loan.BookCopy))?.SetValue(loan, _availableCopy);
+
+            _mockLoanRepository.Setup(r => r.GetByIdAsync(loan.Id)).ReturnsAsync(loan);
+
+            var result = await _loanService.CancelReservationAsync(loan.Id, _readerId, UserRole.Reader.ToString());
+
+            Assert.False(result.Success);
+            Assert.Equal(ErrorType.Unauthorized, result.Error);
+            Assert.NotEqual(LoanStatus.Cancelled, loan.Status);
+            _mockUow.Verify(u => u.SaveChangesAsync(), Times.Never);
+        }
+
         private void AssertNothingReserved()
         {
             Assert.Equal(CopyStatus.Available, _availableCopy.Status);
