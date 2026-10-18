@@ -33,6 +33,10 @@ namespace SimpleLibrary.DataAccess.Postgres.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
                     b.Property<string>("Genre")
                         .IsRequired()
                         .HasColumnType("text");
