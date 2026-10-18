@@ -7,6 +7,7 @@
         Conflict,
         Validation,
         Unauthorized,
+        Forbidden,
         Failure
     }
 }

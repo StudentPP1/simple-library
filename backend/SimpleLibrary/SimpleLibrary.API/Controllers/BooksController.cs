@@ -134,6 +134,7 @@ namespace SimpleLibrary.API.Controllers
                 ErrorType.Conflict => Conflict(apiResponse),           // HTTP 409
                 ErrorType.NotFound => NotFound(apiResponse),           // HTTP 404
                 ErrorType.Unauthorized => Unauthorized(apiResponse),   // HTTP 401
+                ErrorType.Forbidden => StatusCode(403, apiResponse),   // HTTP 403
                 ErrorType.Validation => BadRequest(apiResponse),       // HTTP 400
                 _ => StatusCode(500, apiResponse)                      // HTTP 500
             };

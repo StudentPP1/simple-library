@@ -21,6 +21,9 @@ export default function Login() {
       if (token) {
         localStorage.setItem('jwt_token', token);
         localStorage.setItem('token', token);
+
+        window.dispatchEvent(new Event('authChange'));
+
         navigate('/dashboard');
       } else {
         setError('Не вдалося отримати токен авторизації.');

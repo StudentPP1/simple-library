@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
 import Login from './pages/Login/Login';
 import Admin from './pages/Admin/Admin';
@@ -7,28 +7,35 @@ import Catalog from './pages/Catalog/Catalog';
 import Dashboard from './pages/Dashboard/Dashboard';
 import ForgotPassword from './pages/Auth/ForgotPassword';
 
-const getUserRole = () => {
-  const token = localStorage.getItem('token') || localStorage.getItem('jwt_token');
-  if (!token) return null;
+const getAuthData = () => {
+  const token = localStorage.getItem('jwt_token') || localStorage.getItem('token');
+  if (!token) return { isAuthenticated: false, role: null };
 
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || payload.role;
+    const role =
+      payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || payload.role;
+    return { isAuthenticated: true, role };
   } catch (error) {
-    console.error('Помилка читання токена:', error);
-    return null;
+    return { isAuthenticated: false, role: null };
   }
 };
 
-function App() {
+export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const role = getUserRole();
-  const isAuthenticated = !!(localStorage.getItem('token') || localStorage.getItem('jwt_token'));
-  const isLibrarian = role === 'Librarian';
+  const [auth, setAuth] = useState(getAuthData());
+
+  const refreshAuth = () => setAuth(getAuthData());
+
+  useEffect(() => {
+    window.addEventListener('authChange', refreshAuth);
+    return () => window.removeEventListener('authChange', refreshAuth);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('jwt_token');
+    refreshAuth();
     window.location.href = '/login';
   };
 
@@ -36,133 +43,157 @@ function App() {
 
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-gray-100 font-sans text-gray-900 flex flex-col">
-        {/* Шапка з адаптивною навігацією */}
-        <header className="bg-blue-600 text-white shadow-md sticky top-0 z-50">
-          <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
-            <Link to="/catalog" onClick={closeMenu}>
-              <h1 className="text-xl sm:text-2xl font-bold tracking-wider hover:opacity-90 transition">
-                📚 Бібліотека
-              </h1>
+      {/* Warm White background */}
+      <div className="min-h-screen bg-[#FAF9F6] font-sans text-[#25312B] flex flex-col selection:bg-[#E8EFE8] selection:text-[#294E40]">
+        {/* Header with Soft Border */}
+        <header className="bg-white/90 backdrop-blur-md border-b border-[#E5E7E3] sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex justify-between items-center">
+
+            {/* Logo in Forest Green */}
+            <Link to="/catalog" onClick={closeMenu} className="flex items-center gap-3 group">
+              <div className="w-10 h-10 bg-[#294E40] rounded-xl flex items-center justify-center text-xl text-white shadow-sm group-hover:scale-105 transition duration-200">
+                📚
+              </div>
+              <div>
+                <h1 className="text-xl font-black tracking-tight text-[#25312B]">
+                  SimpleLibrary
+                </h1>
+                <p className="text-[10px] font-bold text-[#69766E] uppercase tracking-wider -mt-1">
+                  Електронний каталог
+                </p>
+              </div>
             </Link>
 
-            {/* Десктопна навігація (Планшети та ПК) */}
-            <nav className="hidden md:flex items-center gap-4 text-sm font-medium">
-              <Link to="/catalog" className="hover:text-blue-200 transition">
-                Каталог
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center gap-2 text-sm font-semibold">
+              <Link
+                to="/catalog"
+                className="px-4 py-2 text-[#69766E] hover:text-[#294E40] hover:bg-[#E8EFE8]/60 rounded-xl transition"
+              >
+                📖 Каталог
               </Link>
 
-              {isAuthenticated && (
-                <Link to="/dashboard" className="hover:text-blue-200 transition">
-                  Мій кабінет
-                </Link>
-              )}
+              {auth.isAuthenticated ? (
+                <>
+                  <Link
+                    to="/dashboard"
+                    className="px-4 py-2 bg-[#E8EFE8] text-[#294E40] hover:bg-[#dbe7db] rounded-xl transition font-bold flex items-center gap-2 border border-[#E5E7E3]"
+                  >
+                    <span>👤</span>
+                    <span>Мій кабінет</span>
+                  </Link>
 
-              {isLibrarian && (
-                <Link to="/admin" className="hover:text-blue-200 transition">
-                  Адмін-панель
-                </Link>
-              )}
+                  {auth.role === 'Librarian' && (
+                    <Link
+                      to="/admin"
+                      className="px-4 py-2 text-[#69766E] hover:text-[#294E40] hover:bg-[#E8EFE8]/60 rounded-xl transition flex items-center gap-1.5"
+                    >
+                      <span>⚙️</span>
+                      <span>Панель адміна</span>
+                    </Link>
+                  )}
 
-              {isAuthenticated ? (
-                <button
-                  onClick={handleLogout}
-                  className="bg-blue-700 px-4 py-2 rounded-md hover:bg-blue-800 transition ml-2 font-semibold"
-                >
-                  Вийти
-                </button>
+                  <div className="h-4 w-[1px] bg-[#E5E7E3] mx-1"></div>
+
+                  <button
+                    onClick={handleLogout}
+                    className="px-3.5 py-2 text-rose-700 hover:bg-rose-50 rounded-xl transition text-xs font-bold"
+                  >
+                    Вийти
+                  </button>
+                </>
               ) : (
                 <Link
                   to="/login"
-                  className="bg-blue-700 px-4 py-2 rounded-md hover:bg-blue-800 transition ml-2 font-semibold"
+                  className="px-5 py-2.5 bg-[#294E40] hover:bg-[#1f3a30] text-white rounded-xl shadow-sm font-bold transition duration-200"
                 >
-                  Увійти
+                  🔑 Увійти
                 </Link>
               )}
             </nav>
 
-            {/* Мобільна кнопка-гамбургер (Смартфони) */}
+            {/* Mobile Menu Toggle */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-md hover:bg-blue-700 focus:outline-none"
-              aria-label="Toggle Menu"
+              className="md:hidden p-2 text-[#25312B] hover:bg-[#E8EFE8] rounded-xl focus:outline-none"
             >
-              <svg className="h-6 w-6 fill-current" viewBox="0 0 24 24">
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 {mobileMenuOpen ? (
-                  <path fillRule="evenodd" clipRule="evenodd" d="M18.278 16.864a1 1 0 01-1.414 1.414l-4.829-4.828-4.828 4.828a1 1 0 01-1.414-1.414l4.828-4.829-4.828-4.828a1 1 0 011.414-1.414l4.829 4.828 4.828-4.828a1 1 0 111.414 1.414l-4.828 4.829 4.828 4.828z"/>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 ) : (
-                  <path fillRule="evenodd" d="M4 5h16a1 1 0 010 2H4a1 1 0 110-2zm0 6h16a1 1 0 010 2H4a1 1 0 010-2zm0 6h16a1 1 0 010 2H4a1 1 0 010-2z"/>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 )}
               </svg>
             </button>
           </div>
 
-          {/* Випадаюче мобільне меню */}
+          {/* Mobile Menu */}
           {mobileMenuOpen && (
-            <div className="md:hidden bg-blue-700 px-4 pt-2 pb-4 space-y-2 border-t border-blue-500 animate-fadeIn">
+            <div className="md:hidden bg-white border-b border-[#E5E7E3] px-4 pt-2 pb-4 space-y-2 shadow-lg">
               <Link
                 to="/catalog"
                 onClick={closeMenu}
-                className="block px-3 py-2 rounded-md text-base font-medium hover:bg-blue-800"
+                className="block px-4 py-2.5 rounded-xl text-base font-semibold text-[#25312B] hover:bg-[#E8EFE8]"
               >
-                📖 Каталог
+                📖 Каталог книг
               </Link>
 
-              {isAuthenticated && (
-                <Link
-                  to="/dashboard"
-                  onClick={closeMenu}
-                  className="block px-3 py-2 rounded-md text-base font-medium hover:bg-blue-800"
-                >
-                  👤 Мій кабінет
-                </Link>
-              )}
+              {auth.isAuthenticated ? (
+                <>
+                  <Link
+                    to="/dashboard"
+                    onClick={closeMenu}
+                    className="block px-4 py-2.5 rounded-xl text-base font-bold bg-[#E8EFE8] text-[#294E40]"
+                  >
+                    👤 Мій кабінет
+                  </Link>
 
-              {isLibrarian && (
-                <Link
-                  to="/admin"
-                  onClick={closeMenu}
-                  className="block px-3 py-2 rounded-md text-base font-medium hover:bg-blue-800"
-                >
-                  ⚙️ Адмін-панель
-                </Link>
-              )}
+                  {auth.role === 'Librarian' && (
+                    <Link
+                      to="/admin"
+                      onClick={closeMenu}
+                      className="block px-4 py-2.5 rounded-xl text-base font-semibold text-[#25312B] hover:bg-[#E8EFE8]"
+                    >
+                      ⚙️ Панель бібліотекаря
+                    </Link>
+                  )}
 
-              {isAuthenticated ? (
-                <button
-                  onClick={() => { closeMenu(); handleLogout(); }}
-                  className="w-full text-left block px-3 py-2 rounded-md text-base font-semibold bg-red-600 hover:bg-red-700 mt-2"
-                >
-                  🚪 Вийти
-                </button>
+                  <button
+                    onClick={() => { closeMenu(); handleLogout(); }}
+                    className="w-full text-left block px-4 py-2.5 rounded-xl text-base font-bold text-rose-700 hover:bg-rose-50 mt-2"
+                  >
+                    🚪 Вийти з акаунту
+                  </button>
+                </>
               ) : (
                 <Link
                   to="/login"
                   onClick={closeMenu}
-                  className="block px-3 py-2 rounded-md text-base font-semibold bg-blue-800 hover:bg-blue-900 mt-2 text-center"
+                  className="block px-4 py-2.5 rounded-xl text-base font-bold bg-[#294E40] text-white text-center shadow-md mt-2"
                 >
-                  🔑 Увійти
+                  🔑 Увійти в систему
                 </Link>
               )}
             </div>
           )}
         </header>
 
-        {/* Основний адаптивний контейнер */}
-        <main className="flex-1 max-w-6xl w-full mx-auto p-3 sm:p-6 my-2 sm:my-4">
+        {/* Main Workspace */}
+        <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
           <Routes>
             <Route path="/" element={<Navigate to="/catalog" replace />} />
-            <Route path="/login" element={<Login />} />
+            <Route
+              path="/login"
+              element={auth.isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />}
+            />
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/catalog" element={<Catalog />} />
             <Route path="/dashboard" element={<Dashboard />} />
-
             <Route
               path="/admin"
-              element={isLibrarian ? <Admin /> : <Navigate to="/catalog" replace />}
+              element={auth.role === 'Librarian' ? <Admin /> : <Navigate to="/catalog" replace />}
             />
-
             <Route path="*" element={<Navigate to="/catalog" replace />} />
           </Routes>
         </main>
@@ -170,5 +201,3 @@ function App() {
     </BrowserRouter>
   );
 }
-
-export default App;

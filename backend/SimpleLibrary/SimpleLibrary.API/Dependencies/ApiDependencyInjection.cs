@@ -83,6 +83,8 @@ namespace SimpleLibrary.API.Dependencies
                 });
             });
 
+            services.AddHostedService<ReservationCleanupService>();
+
             return services;
         }
     }

@@ -51,5 +51,10 @@ namespace SimpleLibrary.Core.Models
             ReturnedAt = DateTime.UtcNow;
         }
 
+        public void Cancel()
+        {
+            Status = LoanStatus.Cancelled;
+            ReturnedAt = DateTime.UtcNow;
+        }
     }
 }

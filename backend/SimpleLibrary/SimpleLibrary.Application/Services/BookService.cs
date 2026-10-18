@@ -28,7 +28,9 @@ namespace SimpleLibrary.Application.Services
                 return ServiceResponse<BookResponse>.Fail($"Рік видання має бути до {DateTime.UtcNow.Year}", ErrorType.Validation);
             }
 
-            var book = new Book(request.Title.Trim(), request.Author.Trim(), request.Genre.Trim(), request.ISBN.Trim(), request.PublicationYear);
+            string? normalizedDescription = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+
+            var book = new Book(request.Title.Trim(), request.Author.Trim(), request.Genre.Trim(), request.ISBN.Trim(), request.PublicationYear, normalizedDescription);
 
             for (int i = 0; i < request.CopiesCount; i++)
             {
@@ -107,7 +109,11 @@ namespace SimpleLibrary.Application.Services
                 return ServiceResponse<BookResponse>.Fail("Книгу не знайдено.", ErrorType.NotFound);
             }
 
-            book.UpdateInfo(request.Title.Trim(), request.Author.Trim(), request.Genre.Trim(), request.ISBN.Trim(), request.PublicationYear);
+            string? newDescription = request.Description == null
+                ? book.Description
+                : (string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim());
+
+            book.UpdateInfo(request.Title.Trim(), request.Author.Trim(), request.Genre.Trim(), request.ISBN.Trim(), request.PublicationYear, newDescription);
 
             await _unitOfWork.SaveChangesAsync();
 
@@ -137,7 +143,7 @@ namespace SimpleLibrary.Application.Services
             }
             catch (Exception ex)
             {
-                if (ex.InnerException != null && ex.InnerException.Message.Contains("23503"))
+                if (ex.InnerException != null && (ex.InnerException.Message.Contains("23503") || ex.InnerException.Message.Contains("23001")))
                 {
                     return ServiceResponse<bool>.Fail("Не можна видалити книгу, оскільки вона збережена в історії читань користувачів.", ErrorType.Conflict);
                 }
@@ -155,6 +161,7 @@ namespace SimpleLibrary.Application.Services
                 Genre = book.Genre,
                 ISBN = book.ISBN,
                 PublicationYear = book.PublicationYear,
+                Description = book.Description,
                 AvailableCopiesCount = availableCopiesCount
             };
         }

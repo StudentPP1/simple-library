@@ -8,6 +8,7 @@ namespace SimpleLibrary.Core.Interfaces.Repositories
         Task AddAsync(Loan loan);
         Task<IEnumerable<Loan>> GetReaderLoansAsync(Guid readerId);
         Task<IEnumerable<Loan>> GetActiveLoansAsync();
+        Task<IEnumerable<Loan>> GetExpiredPendingLoansAsync(DateTime expirationDate);
 
         Task<int> GetActiveLoansCountForReaderAsync(Guid readerId);
         Task<bool> HasActiveLoanForBookAsync(Guid readerId, Guid bookId);
