@@ -3,6 +3,7 @@ import base64
 import itertools
 import json
 import os
+import sys
 import time
 import urllib.error
 import urllib.request
@@ -141,6 +142,10 @@ def _make_driver(name, headed):
         if not headed:
             opts.add_argument("--headless=new")
         opts.add_argument("--window-size=1366,900")
+        if sys.platform.startswith("linux"):
+            # Ubuntu 24.04 (GitHub Actions): AppArmor не дає Edge створити sandbox -> "Chrome instance exited"
+            opts.add_argument("--no-sandbox")
+            opts.add_argument("--disable-dev-shm-usage")
         return webdriver.Edge(options=opts)
     opts = webdriver.FirefoxOptions()
     if not headed:
