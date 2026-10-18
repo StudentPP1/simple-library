@@ -152,13 +152,13 @@ export default function Catalog() {
                 className="bg-white rounded-2xl border border-[#E5E7E3] shadow-sm hover:shadow-md hover:-translate-y-1 transition duration-200 flex flex-col justify-between overflow-hidden group"
               >
                 <div className="p-6 space-y-4">
-                  {/* Верхній рядок: Жанр, Наявність та Кнопка "•••" */}
+                  {/* Рядок з жанром, бейджем наявності та кнопкою "•••" */}
                   <div className="flex justify-between items-center gap-2">
                     <span className="px-2.5 py-1 bg-[#E8EFE8] text-[#294E40] text-[11px] font-bold rounded-lg border border-[#E5E7E3] truncate">
                       {book.genre || 'Література'}
                     </span>
 
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-1.5 shrink-0">
                       <span
                         className={`px-2.5 py-1 rounded-full text-[11px] font-extrabold border ${
                           isAvailable
@@ -173,7 +173,8 @@ export default function Catalog() {
                       <button
                         onClick={() => setSelectedBookForDetails(book)}
                         title="Деталі книги"
-                        className="w-7 h-7 bg-[#E8EFE8] hover:bg-[#294E40] hover:text-white text-[#294E40] rounded-lg flex items-center justify-center font-bold text-xs transition border border-[#E5E7E3]"
+                        type="button"
+                        className="w-8 h-8 bg-[#E8EFE8] hover:bg-[#294E40] hover:text-white text-[#294E40] rounded-xl flex items-center justify-center font-black text-xs transition border border-[#E5E7E3] cursor-pointer shadow-sm"
                       >
                         •••
                       </button>
