@@ -13,10 +13,21 @@ const getAuthData = () => {
 
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
+
+    // ПЕРЕВІРКА ТЕРМІНУ ДІЇ ТОКЕНА
+    if (payload.exp && payload.exp * 1000 < Date.now()) {
+      console.warn('Термін дії токена закінчився. Виконуємо автоматичний вихід.');
+      localStorage.removeItem('token');
+      localStorage.removeItem('jwt_token');
+      return { isAuthenticated: false, role: null };
+    }
+
     const role =
       payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || payload.role;
     return { isAuthenticated: true, role };
   } catch (error) {
+    localStorage.removeItem('token');
+    localStorage.removeItem('jwt_token');
     return { isAuthenticated: false, role: null };
   }
 };
