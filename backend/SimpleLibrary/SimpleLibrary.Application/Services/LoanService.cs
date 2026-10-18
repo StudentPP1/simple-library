@@ -60,7 +60,6 @@ namespace SimpleLibrary.Application.Services
             return ServiceResponse<LoanResponse>.Ok(MapToResponse(savedLoan!));
         }
 
-
         public async Task<ServiceResponse<LoanResponse>> IssueBookAsync(Guid loanId, Guid librarianId, int days)
         {
             var loan = await _unitOfWork.LoanRepository.GetByIdAsync(loanId);
@@ -107,6 +106,34 @@ namespace SimpleLibrary.Application.Services
             return ServiceResponse<LoanResponse>.Ok(MapToResponse(loan));
         }
 
+        public async Task<ServiceResponse<bool>> CancelReservationAsync(Guid loanId, Guid currentUserId, string currentUserRole)
+        {
+            var loan = await _unitOfWork.LoanRepository.GetByIdAsync(loanId);
+
+            if (loan == null || loan.Status != LoanStatus.Pending)
+            {
+                return ServiceResponse<bool>.Fail("Бронювання не знайдено або його вже неможливо скасувати.", ErrorType.Validation);
+            }
+
+            if (currentUserRole != UserRole.Librarian.ToString() && loan.ReaderId != currentUserId)
+            {
+                return ServiceResponse<bool>.Fail("Ви не маєте прав скасувати це бронювання.", ErrorType.Forbidden);
+            }
+
+            loan.Cancel();
+            loan.BookCopy!.ChangeStatus(CopyStatus.Available);
+
+            try
+            {
+                await _unitOfWork.SaveChangesAsync();
+                return ServiceResponse<bool>.Ok(true, "Бронювання успішно скасовано.");
+            }
+            catch (Exception ex) when (ex.GetType().Name == "DbUpdateConcurrencyException")
+            {
+                return ServiceResponse<bool>.Fail("Стан примірника щойно змінився. Спробуйте оновити сторінку.", ErrorType.Conflict);
+            }
+        }
+
         public async Task<ServiceResponse<IEnumerable<LoanResponse>>> GetReaderLoansAsync(Guid readerId)
         {
             var loans = await _unitOfWork.LoanRepository.GetReaderLoansAsync(readerId);
@@ -117,6 +144,33 @@ namespace SimpleLibrary.Application.Services
         {
             var loans = await _unitOfWork.LoanRepository.GetActiveLoansAsync();
             return ServiceResponse<IEnumerable<LoanResponse>>.Ok(loans.Select(MapToResponse));
+        }
+
+        public async Task<int> CancelExpiredReservationsAsync()
+        {
+            var expirationDate = DateTime.UtcNow.AddDays(-3);
+            var expiredLoans = await _unitOfWork.LoanRepository.GetExpiredPendingLoansAsync(expirationDate);
+
+            if (!expiredLoans.Any()) return 0;
+
+            foreach (var loan in expiredLoans)
+            {
+                loan.Cancel();
+                if (loan.BookCopy != null)
+                {
+                    loan.BookCopy.ChangeStatus(CopyStatus.Available);
+                }
+            }
+
+            try
+            {
+                await _unitOfWork.SaveChangesAsync();
+                return expiredLoans.Count();
+            }
+            catch (Exception ex) when (ex.GetType().Name == "DbUpdateConcurrencyException")
+            {
+                return 0;
+            }
         }
 
         private static LoanResponse MapToResponse(Loan loan)

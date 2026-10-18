@@ -55,6 +55,14 @@ namespace SimpleLibrary.DataAccess.Postgres.Repositories
                 .CountAsync(l => l.ReaderId == readerId && (l.Status == LoanStatus.Pending || l.Status == LoanStatus.Active));
         }
 
+        public async Task<IEnumerable<Loan>> GetExpiredPendingLoansAsync(DateTime expirationDate)
+        {
+            return await _context.Loans
+                .Include(l => l.BookCopy)
+                .Where(l => l.Status == LoanStatus.Pending && l.ReservedAt <= expirationDate)
+                .ToListAsync();
+        }
+
         public async Task<bool> HasActiveLoanForBookAsync(Guid readerId, Guid bookId)
         {
             return await _context.Loans

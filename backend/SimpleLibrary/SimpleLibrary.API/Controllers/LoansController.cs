@@ -133,6 +133,31 @@ namespace SimpleLibrary.API.Controllers
             }
         }
 
+        /// <summary>
+        /// Скасування бронювання (FR-13).
+        /// Читач може скасувати свою бронь. Бібліотекар - будь-яку.
+        /// </summary>
+        [HttpPost("{id:guid}/cancel")]
+        public async Task<IActionResult> CancelReservation(Guid id)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                var userRole = User.FindFirstValue(ClaimTypes.Role) ?? "";
+
+                var response = await _loanService.CancelReservationAsync(id, userId, userRole);
+
+                if (!response.Success) return MapErrorToHttpResponse(response);
+
+                return Ok(new ApiResponse<bool>(true, response.Message, response.Data));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Помилка під час скасування бронювання.");
+                return StatusCode(500, new ApiResponse<object>(false, "Внутрішня помилка сервера.", null));
+            }
+        }
+
         private Guid GetCurrentUserId()
         {
             var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -148,13 +173,13 @@ namespace SimpleLibrary.API.Controllers
 
             return response.Error switch
             {
-                ErrorType.Conflict => Conflict(apiResponse),
-                ErrorType.NotFound => NotFound(apiResponse),
-                ErrorType.Unauthorized => Unauthorized(apiResponse),
-                ErrorType.Validation => BadRequest(apiResponse),
-                _ => StatusCode(500, apiResponse)
+                ErrorType.Conflict => Conflict(apiResponse),           // HTTP 409
+                ErrorType.NotFound => NotFound(apiResponse),           // HTTP 404
+                ErrorType.Unauthorized => Unauthorized(apiResponse),   // HTTP 401
+                ErrorType.Forbidden => StatusCode(403, apiResponse),   // HTTP 403
+                ErrorType.Validation => BadRequest(apiResponse),       // HTTP 400
+                _ => StatusCode(500, apiResponse)                      // HTTP 500
             };
-
         }
     }
 }
