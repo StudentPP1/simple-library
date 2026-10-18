@@ -74,7 +74,6 @@ export default function Admin() {
   const activeLoansCount = loans.filter((l) => isActiveLoan(l.status)).length;
   const overdueCount = loans.filter((l) => checkIsOverdue(l)).length;
 
-<<<<<<< HEAD
   const resetForm = () => {
     setEditBookId(null);
     setBookForm({
@@ -88,8 +87,6 @@ export default function Admin() {
     });
   };
 
-=======
->>>>>>> origin/main
   const handleBookSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -290,11 +287,7 @@ export default function Admin() {
                 {editBookId ? '✏️ Редагувати книгу' : '➕ Додати нову книгу'}
               </h3>
               <p className="text-xs text-[#69766E] mt-0.5">
-<<<<<<< HEAD
                 Заповніть метадані та детальний опис книги
-=======
-                Заповніть метадані книги для додавання у фонд
->>>>>>> origin/main
               </p>
             </div>
 
@@ -342,7 +335,6 @@ export default function Admin() {
               </div>
 
               <div>
-<<<<<<< HEAD
                 <div className="flex justify-between items-center mb-1">
                   <label className="block text-xs font-bold text-[#69766E] uppercase tracking-wider">
                     Опис книги (опціонально)
@@ -368,8 +360,6 @@ export default function Admin() {
               </div>
 
               <div>
-=======
->>>>>>> origin/main
                 <label className="block text-xs font-bold text-[#69766E] uppercase tracking-wider mb-1">
                   ISBN
                 </label>
@@ -424,21 +414,7 @@ export default function Admin() {
                 {editBookId && (
                   <button
                     type="button"
-<<<<<<< HEAD
                     onClick={resetForm}
-=======
-                    onClick={() => {
-                      setEditBookId(null);
-                      setBookForm({
-                        title: '',
-                        author: '',
-                        genre: '',
-                        isbn: '',
-                        publicationYear: new Date().getFullYear(),
-                        copiesCount: 1,
-                      });
-                    }}
->>>>>>> origin/main
                     className="px-4 py-3 bg-[#E8EFE8] hover:bg-[#dbe7db] text-[#25312B] font-bold rounded-xl text-sm transition"
                   >
                     Скасувати
@@ -490,20 +466,14 @@ export default function Admin() {
                             <button
                               onClick={() => handleEditClick(b)}
                               className="p-2 text-amber-700 hover:bg-amber-50 rounded-lg transition"
-<<<<<<< HEAD
                               title="Редагувати"
-=======
->>>>>>> origin/main
                             >
                               ✏️
                             </button>
                             <button
                               onClick={() => handleDeleteClick(b.id)}
                               className="p-2 text-rose-700 hover:bg-rose-50 rounded-lg transition"
-<<<<<<< HEAD
                               title="Видалити"
-=======
->>>>>>> origin/main
                             >
                               🗑️
                             </button>

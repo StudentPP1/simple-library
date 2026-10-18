@@ -115,7 +115,7 @@ export default function Catalog() {
         </div>
       </div>
 
-      {/* Alert Messages */}
+      {/* Messages */}
       {message.text && (
         <div
           className={`p-4 rounded-2xl text-sm font-bold flex items-center justify-between border shadow-sm ${
@@ -129,7 +129,7 @@ export default function Catalog() {
         </div>
       )}
 
-      {/* Book Grid */}
+      {/* Grid */}
       {loading ? (
         <div className="py-20 text-center text-[#69766E] font-medium">
           Завантаження бібліотечного фонду...
@@ -149,32 +149,36 @@ export default function Catalog() {
             return (
               <div
                 key={book.id}
-                className="bg-white rounded-2xl border border-[#E5E7E3] shadow-sm hover:shadow-md hover:-translate-y-1 transition duration-200 flex flex-col justify-between overflow-hidden group relative"
+                className="bg-white rounded-2xl border border-[#E5E7E3] shadow-sm hover:shadow-md hover:-translate-y-1 transition duration-200 flex flex-col justify-between overflow-hidden group"
               >
-                <div className="p-6 space-y-3">
-                  <div className="flex justify-between items-start gap-2 pr-6">
-                    <span className="px-2.5 py-1 bg-[#E8EFE8] text-[#294E40] text-[11px] font-bold rounded-lg border border-[#E5E7E3]">
+                <div className="p-6 space-y-4">
+                  {/* Верхній рядок: Жанр, Наявність та Кнопка "•••" */}
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="px-2.5 py-1 bg-[#E8EFE8] text-[#294E40] text-[11px] font-bold rounded-lg border border-[#E5E7E3] truncate">
                       {book.genre || 'Література'}
                     </span>
-                    <span
-                      className={`px-2.5 py-1 rounded-full text-[11px] font-extrabold border ${
-                        isAvailable
-                          ? 'bg-[#E8EFE8] text-[#294E40] border-[#294E40]/20'
-                          : 'bg-rose-50 text-rose-700 border-rose-200'
-                      }`}
-                    >
-                      {isAvailable ? `В наявності: ${availableCount}` : 'Немає'}
-                    </span>
-                  </div>
 
-                  {/* Кнопка ТРИ КРАПКИ (Деталі) */}
-                  <button
-                    onClick={() => setSelectedBookForDetails(book)}
-                    title="Переглянути деталі книги"
-                    className="absolute top-4 right-4 w-8 h-8 bg-[#E8EFE8] hover:bg-[#294E40] hover:text-white text-[#294E40] rounded-xl flex items-center justify-center font-bold text-sm transition shadow-sm border border-[#E5E7E3]"
-                  >
-                    •••
-                  </button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span
+                        className={`px-2.5 py-1 rounded-full text-[11px] font-extrabold border ${
+                          isAvailable
+                            ? 'bg-[#E8EFE8] text-[#294E40] border-[#294E40]/20'
+                            : 'bg-rose-50 text-rose-700 border-rose-200'
+                        }`}
+                      >
+                        {isAvailable ? `В наявності: ${availableCount}` : 'Немає'}
+                      </span>
+
+                      {/* КНОПКА ТРИ КРАПКИ */}
+                      <button
+                        onClick={() => setSelectedBookForDetails(book)}
+                        title="Деталі книги"
+                        className="w-7 h-7 bg-[#E8EFE8] hover:bg-[#294E40] hover:text-white text-[#294E40] rounded-lg flex items-center justify-center font-bold text-xs transition border border-[#E5E7E3]"
+                      >
+                        •••
+                      </button>
+                    </div>
+                  </div>
 
                   <div>
                     <h3 className="text-lg font-black text-[#25312B] group-hover:text-[#294E40] transition line-clamp-2">
@@ -192,7 +196,6 @@ export default function Catalog() {
                     <span>ISBN: {book.isbn || '—'}</span>
                   </div>
 
-                  {/* Reserve Button */}
                   <button
                     onClick={() => handleReserve(book.id)}
                     disabled={!isAvailable || reservingId === book.id}
@@ -216,7 +219,7 @@ export default function Catalog() {
         </div>
       )}
 
-      {/* МОДАЛЬНЕ ВІКНО ДЕТАЛЕЙ КНИГИ */}
+      {/* МОДАЛЬНЕ ВІКНО ДЕТАЛЕЙ */}
       {selectedBookForDetails && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
           <div className="bg-white rounded-3xl border border-[#E5E7E3] shadow-2xl max-w-lg w-full p-6 sm:p-8 space-y-6 relative overflow-hidden">
