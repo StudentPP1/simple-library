@@ -28,7 +28,9 @@ namespace SimpleLibrary.Application.Services
                 return ServiceResponse<BookResponse>.Fail($"Рік видання має бути до {DateTime.UtcNow.Year}", ErrorType.Validation);
             }
 
-            var book = new Book(request.Title.Trim(), request.Author.Trim(), request.Genre.Trim(), request.ISBN.Trim(), request.PublicationYear, request.Description?.Trim());
+            string? normalizedDescription = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+
+            var book = new Book(request.Title.Trim(), request.Author.Trim(), request.Genre.Trim(), request.ISBN.Trim(), request.PublicationYear, normalizedDescription);
 
             for (int i = 0; i < request.CopiesCount; i++)
             {
@@ -107,7 +109,11 @@ namespace SimpleLibrary.Application.Services
                 return ServiceResponse<BookResponse>.Fail("Книгу не знайдено.", ErrorType.NotFound);
             }
 
-            book.UpdateInfo(request.Title.Trim(), request.Author.Trim(), request.Genre.Trim(), request.ISBN.Trim(), request.PublicationYear, request.Description?.Trim());
+            string? newDescription = request.Description == null
+                ? book.Description
+                : (string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim());
+
+            book.UpdateInfo(request.Title.Trim(), request.Author.Trim(), request.Genre.Trim(), request.ISBN.Trim(), request.PublicationYear, newDescription);
 
             await _unitOfWork.SaveChangesAsync();
 
