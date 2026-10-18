@@ -1,7 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using SimpleLibrary.Core.Enums;
-using SimpleLibrary.Core.Interfaces.Services;
-using SimpleLibrary.DataAccess.Postgres;
+﻿using SimpleLibrary.Core.Interfaces.Services;
 
 namespace SimpleLibrary.API.Services
 {
@@ -27,13 +24,16 @@ namespace SimpleLibrary.API.Services
                     using var scope = _serviceProvider.CreateScope();
                     var loanService = scope.ServiceProvider.GetRequiredService<ILoanService>();
 
-                    await loanService.CancelExpiredReservationsAsync();
+                    int cancelledCount = await loanService.CancelExpiredReservationsAsync();
 
-                    _logger.LogInformation("Цикл перевірки прострочених бронювань завершено.");
+                    if (cancelledCount > 0)
+                    {
+                        _logger.LogInformation("Автоматично скасовано {Count} прострочених бронювань.", cancelledCount);
+                    }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Помилка під час фонового очищення бронювань.");
+                    _logger.LogError(ex, "Критична помилка під час фонового очищення бронювань.");
                 }
 
                 await Task.Delay(TimeSpan.FromHours(1), stoppingToken);

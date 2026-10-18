@@ -146,12 +146,12 @@ namespace SimpleLibrary.Application.Services
             return ServiceResponse<IEnumerable<LoanResponse>>.Ok(loans.Select(MapToResponse));
         }
 
-        public async Task CancelExpiredReservationsAsync()
+        public async Task<int> CancelExpiredReservationsAsync()
         {
             var expirationDate = DateTime.UtcNow.AddDays(-3);
             var expiredLoans = await _unitOfWork.LoanRepository.GetExpiredPendingLoansAsync(expirationDate);
 
-            if (!expiredLoans.Any()) return;
+            if (!expiredLoans.Any()) return 0;
 
             foreach (var loan in expiredLoans)
             {
@@ -165,10 +165,11 @@ namespace SimpleLibrary.Application.Services
             try
             {
                 await _unitOfWork.SaveChangesAsync();
+                return expiredLoans.Count();
             }
-            catch (Exception)
+            catch (Exception ex) when (ex.GetType().Name == "DbUpdateConcurrencyException")
             {
-                // Ігноруємо помилки конкуренції для фонового завдання
+                return 0;
             }
         }
 

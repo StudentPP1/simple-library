@@ -137,10 +137,9 @@ namespace SimpleLibrary.Application.Services
             }
             catch (Exception ex)
             {
-                if (ex.InnerException != null &&
-                   (ex.InnerException.Message.Contains("23503") || ex.InnerException.Message.Contains("23001")))
+                if (ex.InnerException != null && (ex.InnerException.Message.Contains("23503") || ex.InnerException.Message.Contains("23001")))
                 {
-                    return ServiceResponse<bool>.Fail("Не можна видалити книгу, оскільки вона є в історії читань. Здайте її в архів.", ErrorType.Conflict);
+                    return ServiceResponse<bool>.Fail("Не можна видалити книгу, оскільки вона збережена в історії читань користувачів.", ErrorType.Conflict);
                 }
                 throw;
             }

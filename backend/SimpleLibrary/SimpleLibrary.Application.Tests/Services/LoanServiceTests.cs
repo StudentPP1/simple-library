@@ -132,11 +132,10 @@ namespace SimpleLibrary.Application.Tests.Services
         }
 
         [Fact]
-        public async Task CancelReservationAsync_AsReader_OtherPersonReservation_ReturnsUnauthorized()
+        public async Task CancelReservationAsync_AsReader_OtherPersonReservation_ReturnsForbidden()
         {
             var otherReaderId = Guid.NewGuid();
             var loan = new Loan(otherReaderId, _availableCopy.Id);
-
             typeof(Loan).GetProperty(nameof(Loan.BookCopy))?.SetValue(loan, _availableCopy);
 
             _mockLoanRepository.Setup(r => r.GetByIdAsync(loan.Id)).ReturnsAsync(loan);
@@ -144,7 +143,7 @@ namespace SimpleLibrary.Application.Tests.Services
             var result = await _loanService.CancelReservationAsync(loan.Id, _readerId, UserRole.Reader.ToString());
 
             Assert.False(result.Success);
-            Assert.Equal(ErrorType.Unauthorized, result.Error);
+            Assert.Equal(ErrorType.Forbidden, result.Error);
             Assert.NotEqual(LoanStatus.Cancelled, loan.Status);
             _mockUow.Verify(u => u.SaveChangesAsync(), Times.Never);
         }
