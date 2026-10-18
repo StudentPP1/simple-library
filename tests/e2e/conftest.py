@@ -1,5 +1,4 @@
 """Спільні фікстури для системних (E2E) тестів Simple Library на Selenium."""
-import base64
 import itertools
 import json
 import os
@@ -26,6 +25,10 @@ def pytest_addoption(parser):
     parser.addoption("--base-url", default=os.getenv("E2E_BASE_URL", "http://localhost:3000"))
     parser.addoption("--api-url", default=os.getenv("E2E_API_URL", "http://127.0.0.1:5000/api"))
     parser.addoption("--headed", action="store_true", help="Показувати вікно браузера")
+    parser.addoption("--remote-url", default=os.getenv("SELENIUM_REMOTE_URL"),
+                     help="Адреса Selenium Grid/контейнера, напр. http://localhost:4444")
+    parser.addoption("--browser-arg", action="append", default=[],
+                     help="Додатковий аргумент браузера (можна вказати кілька разів)")
 
 
 def _read_env_file():
@@ -130,35 +133,43 @@ def book(api, librarian, unique):
     return api.add_book(librarian["token"], title=f"E2E книга {unique}")
 
 
-def _make_driver(name, headed):
+def _make_driver(name, headed, remote_url, extra_args):
     if name == "chrome":
         opts = webdriver.ChromeOptions()
-        if not headed:
-            opts.add_argument("--headless=new")
-        opts.add_argument("--window-size=1366,900")
-        return webdriver.Chrome(options=opts)
-    if name == "edge":
+    elif name == "edge":
         opts = webdriver.EdgeOptions()
-        if not headed:
-            opts.add_argument("--headless=new")
-        opts.add_argument("--window-size=1366,900")
-        if sys.platform.startswith("linux"):
-            # Ubuntu 24.04 (GitHub Actions): AppArmor не дає Edge створити sandbox -> "Chrome instance exited"
+        if sys.platform.startswith("linux") and not remote_url:
+            # Ubuntu 24.04: AppArmor не дає Edge створити sandbox -> "Chrome instance exited"
             opts.add_argument("--no-sandbox")
             opts.add_argument("--disable-dev-shm-usage")
-        return webdriver.Edge(options=opts)
-    opts = webdriver.FirefoxOptions()
+    else:
+        opts = webdriver.FirefoxOptions()
+
     if not headed:
-        opts.add_argument("-headless")
-    driver = webdriver.Firefox(options=opts)
+        opts.add_argument("-headless" if name == "firefox" else "--headless=new")
+    if name != "firefox":
+        opts.add_argument("--window-size=1366,900")
+    for arg in extra_args:
+        opts.add_argument(arg)
+
+    if remote_url:
+        # Браузер в офіційному контейнері Selenium (так запускається Edge у CI)
+        driver = webdriver.Remote(command_executor=remote_url, options=opts)
+    else:
+        driver = {"chrome": webdriver.Chrome, "edge": webdriver.Edge, "firefox": webdriver.Firefox}[name](options=opts)
     driver.set_window_size(1366, 900)
     return driver
 
 
 @pytest.fixture(scope="session")
 def _session_driver(browser_name, request):
-    drv = _make_driver(browser_name, request.config.getoption("--headed"))
+    cfg = request.config
+    drv = _make_driver(browser_name, cfg.getoption("--headed"), cfg.getoption("--remote-url"),
+                       cfg.getoption("--browser-arg"))
     drv.implicitly_wait(0)
+    # Без цього зависла сторінка блокує тест на 5 хвилин (стандартний таймаут Selenium)
+    drv.set_page_load_timeout(30)
+    drv.set_script_timeout(30)
     yield drv
     drv.quit()
 
@@ -240,13 +251,6 @@ def xpath_literal(s):
     return "concat('" + s.replace("'", "', \"'\", '") + "')"
 
 
-def jwt_role(token):
-    payload = token.split(".")[1]
-    payload += "=" * (-len(payload) % 4)
-    data = json.loads(base64.urlsafe_b64decode(payload))
-    return data.get("http://schemas.microsoft.com/ws/2008/06/identity/claims/role") or data.get("role")
-
-
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     """Скриншот при падінні тесту — для звіту про знайдені помилки."""
@@ -256,4 +260,8 @@ def pytest_runtest_makereport(item, call):
         drv = item.funcargs["driver"]
         shots = REPO_ROOT / "tests" / "e2e" / "screenshots"
         shots.mkdir(exist_ok=True)
-        drv.save_screenshot(str(shots / f"{item.name}.png"))
+        try:
+            drv.save_screenshot(str(shots / f"{item.name}.png"))
+        except Exception as e:
+            # Зависший браузер не повинен обривати весь прогін (INTERNALERROR)
+            report.sections.append(("screenshot", f"Не вдалося зберегти скриншот: {e.__class__.__name__}"))

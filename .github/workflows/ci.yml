@@ -53,6 +53,7 @@ jobs:
 
   e2e-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -77,6 +78,19 @@ jobs:
         docker compose logs backend
         exit 1
 
+    # Встановлений на раннері Edge зависає в headless-режимі ("Timed out receiving message from renderer"),
+    # тому Edge запускаємо в офіційному контейнері Selenium; host-мережа дає йому доступ до localhost
+    - name: Start Edge container
+      if: matrix.browser == 'edge'
+      run: |
+        docker run -d --name selenium-edge --network host --shm-size=2g selenium/standalone-edge:155.0-20261010
+        for i in $(seq 1 30); do
+          curl -fs http://localhost:4444/status | grep -q '"ready": *true' && exit 0
+          sleep 2
+        done
+        docker logs selenium-edge
+        exit 1
+
     - uses: actions/setup-python@v5
       with:
         python-version: '3.12'
@@ -85,6 +99,8 @@ jobs:
       run: pip install -r tests/e2e/requirements.txt
 
     - name: Run Selenium tests (${{ matrix.browser }})
+      env:
+        SELENIUM_REMOTE_URL: ${{ matrix.browser == 'edge' && 'http://localhost:4444' || '' }}
       run: |
         pytest tests/e2e --browser ${{ matrix.browser }} -v \
           --html=tests/e2e/reports/report-${{ matrix.browser }}.html --self-contained-html
