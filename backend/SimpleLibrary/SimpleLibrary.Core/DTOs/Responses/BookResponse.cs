@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace SimpleLibrary.Core.DTOs.Responses
+﻿namespace SimpleLibrary.Core.DTOs.Responses
 {
     public class BookResponse
     {
