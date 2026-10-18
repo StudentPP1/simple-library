@@ -18,6 +18,13 @@ namespace SimpleLibrary.Core.DTOs.Requests
         [MaxLength(20)]
         public string ISBN { get; init; } = string.Empty;
 
+        /// <summary>
+        /// Опис книги. Якщо передати null або не передати поле взагалі - старий опис збережеться.
+        /// Щоб видалити існуючий опис, передайте порожній рядок "".
+        /// </summary>
+        [MaxLength(2000, ErrorMessage = "Опис не може перевищувати 2000 символів")]
+        public string? Description { get; init; }
+
         public int PublicationYear { get; init; }
     }
 }

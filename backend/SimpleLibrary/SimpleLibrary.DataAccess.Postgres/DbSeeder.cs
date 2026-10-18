@@ -68,9 +68,9 @@ namespace SimpleLibrary.DataAccess.Postgres
             await context.SaveChangesAsync();
         }
 
-        private static Book CreateBook(string title, string author, string genre, string isbn, int year, int copiesCount)
+        private static Book CreateBook(string title, string author, string genre, string isbn, int year, int copiesCount, string? description = null)
         {
-            var book = new Book(title, author, genre, isbn, year);
+            var book = new Book(title, author, genre, isbn, year, description);
 
             for (int i = 0; i < copiesCount; i++)
             {
