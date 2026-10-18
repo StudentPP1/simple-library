@@ -110,6 +110,16 @@ docker compose up -d --build
 docker compose --profile test run --rm --build tests
 ```
 
+API-тести (Postman-колекція в `tests/api/`) запускаються через Newman на піднятому `docker compose`. Код бібліотекаря має збігатися з `LIBRARIAN_INVITE_CODE` у `.env`:
+
+```bash
+npx newman run tests/api/SimpleLibrary.postman_collection.json -e tests/api/local.postman_environment.json --env-var librarianCode=<LIBRARIAN_INVITE_CODE>
+```
+
+Колекцію можна також імпортувати в Postman разом з оточенням `local.postman_environment.json`.
+
+Стан сервісу та підключення до БД: `GET http://localhost:5000/health` (`Healthy` / `Unhealthy`).
+
 CI (GitHub Actions) на кожен push і pull request у `main` збирає й тестує бекенд, а також збирає та перевіряє лінтером фронтенд.
 
 ## Робота з Git
