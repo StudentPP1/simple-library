@@ -112,6 +112,18 @@ docker compose --profile test run --rm --build tests
 
 CI (GitHub Actions) на кожен push і pull request у `main` збирає й тестує бекенд, а також збирає та перевіряє лінтером фронтенд.
 
+Системні E2E-тести (Selenium + pytest, `tests/e2e/`) проходять сценарії читача й бібліотекаря в реальному браузері: Chrome, Firefox або Edge. Потрібні Python 3.12+ і запущений `docker compose`. Код бібліотекаря тести беруть з `.env`.
+
+```bash
+python -m venv tests/e2e/.venv
+tests/e2e/.venv/Scripts/pip install -r tests/e2e/requirements.txt   # Linux/macOS: tests/e2e/.venv/bin/pip
+tests/e2e/.venv/Scripts/python -m pytest tests/e2e --browser chrome --html=tests/e2e/reports/report-chrome.html --self-contained-html
+```
+
+Драйвер браузера Selenium завантажує сам. Щоб бачити вікно браузера, додайте `--headed`. Каталог показує лише перші 100 книг, тому тести краще запускати на свіжій базі (`docker compose down -v`).
+
+E2E-тести також запускаються в CI окремо для Chrome, Firefox і Edge.
+
 ## Робота з Git
 
 - `main` - стабільна гілка, прямі коміти в неї не робимо.

@@ -50,3 +50,50 @@ jobs:
       
     - name: Lint
       run: npm run lint
+
+  e2e-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chrome, firefox, edge]
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Create .env for CI
+      run: |
+        cp .env.example .env
+        sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$(openssl rand -hex 12)|" .env
+        sed -i "s|^JWT_SECRET_KEY=.*|JWT_SECRET_KEY=$(openssl rand -hex 32)|" .env
+        sed -i "s|^LIBRARIAN_INVITE_CODE=.*|LIBRARIAN_INVITE_CODE=$(openssl rand -hex 8)|" .env
+
+    - name: Start application
+      run: |
+        docker compose up -d --build db backend frontend
+        for i in $(seq 1 30); do
+          curl -fs http://127.0.0.1:5000/api/books > /dev/null && curl -fs http://127.0.0.1:3000 > /dev/null && exit 0
+          sleep 2
+        done
+        docker compose logs backend
+        exit 1
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install test dependencies
+      run: pip install -r tests/e2e/requirements.txt
+
+    - name: Run Selenium tests (${{ matrix.browser }})
+      run: |
+        pytest tests/e2e --browser ${{ matrix.browser }} -v \
+          --html=tests/e2e/reports/report-${{ matrix.browser }}.html --self-contained-html
+
+    - name: Upload E2E report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: e2e-report-${{ matrix.browser }}
+        path: |
+          tests/e2e/reports/
+          tests/e2e/screenshots/
