@@ -8,10 +8,7 @@ export default function Catalog() {
   const [selectedGenre, setSelectedGenre] = useState('');
   const [genres, setGenres] = useState([]);
   const [reservingId, setReservingId] = useState(null);
-<<<<<<< HEAD
-  const [selectedBookForDetails, setSelectedBookForDetails] = useState(null); // Модальне вікно
-=======
->>>>>>> origin/main
+  const [selectedBookForDetails, setSelectedBookForDetails] = useState(null);
   const [message, setMessage] = useState({ type: '', text: '' });
 
   const fetchBooks = async () => {
@@ -52,12 +49,9 @@ export default function Catalog() {
       await api.post('/Loans/reserve', { bookId });
       showMessage('success', 'Книгу успішно заброньовано! Вона чекає на вас у кабінеті.');
       fetchBooks();
-<<<<<<< HEAD
       if (selectedBookForDetails?.id === bookId) {
-        setSelectedBookForDetails(null); // Закриваємо модалку після замовлення
+        setSelectedBookForDetails(null);
       }
-=======
->>>>>>> origin/main
     } catch (err) {
       showMessage('error', err.response?.data?.message || 'Не вдалося забронювати книгу.');
     } finally {
@@ -75,7 +69,7 @@ export default function Catalog() {
 
   return (
     <div className="space-y-8">
-      {/* Hero Banner in Forest Green */}
+      {/* Hero Banner */}
       <div className="relative overflow-hidden bg-[#294E40] text-white rounded-3xl p-8 sm:p-12 shadow-lg border border-[#294E40]/20">
         <div className="relative z-10 max-w-2xl space-y-4">
           <span className="px-3 py-1 bg-[#E8EFE8]/20 text-[#E8EFE8] border border-[#E8EFE8]/30 text-xs font-bold rounded-full uppercase tracking-wider">
@@ -155,18 +149,10 @@ export default function Catalog() {
             return (
               <div
                 key={book.id}
-<<<<<<< HEAD
                 className="bg-white rounded-2xl border border-[#E5E7E3] shadow-sm hover:shadow-md hover:-translate-y-1 transition duration-200 flex flex-col justify-between overflow-hidden group relative"
               >
                 <div className="p-6 space-y-3">
                   <div className="flex justify-between items-start gap-2 pr-6">
-=======
-                className="bg-white rounded-2xl border border-[#E5E7E3] shadow-sm hover:shadow-md hover:-translate-y-1 transition duration-200 flex flex-col justify-between overflow-hidden group"
-              >
-                <div className="p-6 space-y-3">
-                  <div className="flex justify-between items-start gap-2">
->>>>>>> origin/main
-                    {/* Soft Sage Badge */}
                     <span className="px-2.5 py-1 bg-[#E8EFE8] text-[#294E40] text-[11px] font-bold rounded-lg border border-[#E5E7E3]">
                       {book.genre || 'Література'}
                     </span>
@@ -177,7 +163,6 @@ export default function Catalog() {
                           : 'bg-rose-50 text-rose-700 border-rose-200'
                       }`}
                     >
-<<<<<<< HEAD
                       {isAvailable ? `В наявності: ${availableCount}` : 'Немає'}
                     </span>
                   </div>
@@ -195,18 +180,6 @@ export default function Catalog() {
                     <h3 className="text-lg font-black text-[#25312B] group-hover:text-[#294E40] transition line-clamp-2">
                       {book.title}
                     </h3>
-=======
-                      {isAvailable ? `В наявності: ${availableCount}` : 'Немає в наявності'}
-                    </span>
-                  </div>
-
-                  <div>
-                    {/* Charcoal title */}
-                    <h3 className="text-lg font-black text-[#25312B] group-hover:text-[#294E40] transition line-clamp-2">
-                      {book.title}
-                    </h3>
-                    {/* Muted Green author */}
->>>>>>> origin/main
                     <p className="text-xs font-semibold text-[#69766E] mt-1">
                       {book.author || 'Автор не вказаний'}
                     </p>
@@ -219,7 +192,7 @@ export default function Catalog() {
                     <span>ISBN: {book.isbn || '—'}</span>
                   </div>
 
-                  {/* Forest Green Button */}
+                  {/* Reserve Button */}
                   <button
                     onClick={() => handleReserve(book.id)}
                     disabled={!isAvailable || reservingId === book.id}
@@ -240,17 +213,13 @@ export default function Catalog() {
               </div>
             );
           })}
-<<<<<<< HEAD
         </div>
       )}
 
-      {/* ========================================== */}
-      {/* МОДАЛЬНЕ ВІКНО ДЕТАЛЕЙ КНИГИ              */}
-      {/* ========================================== */}
+      {/* МОДАЛЬНЕ ВІКНО ДЕТАЛЕЙ КНИГИ */}
       {selectedBookForDetails && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
           <div className="bg-white rounded-3xl border border-[#E5E7E3] shadow-2xl max-w-lg w-full p-6 sm:p-8 space-y-6 relative overflow-hidden">
-            {/* Кнопка закриття */}
             <button
               onClick={() => setSelectedBookForDetails(null)}
               className="absolute top-5 right-5 w-9 h-9 bg-[#E8EFE8] hover:bg-rose-100 hover:text-rose-700 text-[#25312B] rounded-xl flex items-center justify-center font-black transition"
@@ -258,7 +227,6 @@ export default function Catalog() {
               ✕
             </button>
 
-            {/* Шапка детального перегляду */}
             <div className="space-y-3">
               <span className="px-3 py-1 bg-[#E8EFE8] text-[#294E40] text-xs font-bold rounded-lg border border-[#E5E7E3] inline-block">
                 {selectedBookForDetails.genre || 'Література'}
@@ -272,7 +240,6 @@ export default function Catalog() {
               </p>
             </div>
 
-            {/* Блок з описом книги */}
             <div className="space-y-2 border-t border-b border-[#E5E7E3] py-4">
               <h4 className="text-xs font-extrabold text-[#69766E] uppercase tracking-wider">
                 Опис та анотація
@@ -282,7 +249,6 @@ export default function Catalog() {
               </p>
             </div>
 
-            {/* Метадані */}
             <div className="grid grid-cols-2 gap-4 text-xs font-semibold text-[#69766E]">
               <div>
                 <span className="block text-[10px] text-[#69766E] uppercase">ISBN</span>
@@ -294,7 +260,6 @@ export default function Catalog() {
               </div>
             </div>
 
-            {/* Дії у модальному вікні */}
             <div className="flex gap-3 pt-2">
               <button
                 onClick={() => setSelectedBookForDetails(null)}
@@ -314,8 +279,6 @@ export default function Catalog() {
               </button>
             </div>
           </div>
-=======
->>>>>>> origin/main
         </div>
       )}
     </div>
