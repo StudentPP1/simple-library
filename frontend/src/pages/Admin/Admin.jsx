@@ -2,11 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../../services/api';
 
 export default function Admin() {
-  const [activeSection, setActiveSection] = useState('books'); // 'books' або 'loans'
-
-  // ==========================================
-  // СТАН ДЛЯ КЕРУВАННЯ КНИГАМИ
-  // ==========================================
+  const [activeSection, setActiveSection] = useState('books');
   const [books, setBooks] = useState([]);
   const [loadingBooks, setLoadingBooks] = useState(true);
   const [editBookId, setEditBookId] = useState(null);
@@ -17,16 +13,13 @@ export default function Admin() {
     isbn: '',
     publicationYear: new Date().getFullYear(),
     copiesCount: 1,
+    description: '',
   });
 
-  // ==========================================
-  // СТАН ДЛЯ КЕРУВАННЯ ВИДАЧАМИ ТА БОРЖНИКАМИ
-  // ==========================================
   const [loans, setLoans] = useState([]);
   const [loadingLoans, setLoadingLoans] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  // Завантаження списку книг
   const fetchBooks = async () => {
     setLoadingBooks(true);
     try {
@@ -41,7 +34,6 @@ export default function Admin() {
     }
   };
 
-  // Завантаження активних видач та заброньованих книг
   const fetchActiveLoans = async () => {
     setLoadingLoans(true);
     try {
@@ -57,6 +49,7 @@ export default function Admin() {
 
   useEffect(() => {
     fetchBooks();
+    fetchActiveLoans();
   }, []);
 
   const showMsg = (type, text) => {
@@ -64,65 +57,60 @@ export default function Admin() {
     setTimeout(() => setMessage({ type: '', text: '' }), 4000);
   };
 
-  // ==========================================
-  // ХЕЛПЕРІ ДЛЯ СТАТУСІВ ТА ДЕДЛАЙНІВ
-  // ==========================================
-  const isPendingReservation = (status) => {
-    return status === 'Pending' || status === 'Reserved' || status === 0;
-  };
-
-  const isActiveLoan = (status) => {
-    return status === 'Active' || status === 'Issued' || status === 1;
-  };
+  const isPendingReservation = (status) => status === 'Pending' || status === 'Reserved' || status === 0;
+  const isActiveLoan = (status) => status === 'Active' || status === 'Issued' || status === 1;
 
   const checkIsOverdue = (loan) => {
-    if (typeof loan.isOverdue === 'boolean') {
-      return loan.isOverdue;
-    }
-    if (!loan.dueDate || loan.status === 'Returned' || loan.status === 'Cancelled' || loan.status === 2) {
-      return false;
-    }
+    if (typeof loan.isOverdue === 'boolean') return loan.isOverdue;
+    if (!loan.dueDate || loan.status === 'Returned' || loan.status === 'Cancelled' || loan.status === 2) return false;
     const due = new Date(loan.dueDate);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return due < today;
   };
 
-  // ==========================================
-  // ОБРОБНИКИ ДІЙ З КНИГАМИ
-  // ==========================================
+  const totalBooks = books.length;
+  const totalCopies = books.reduce((sum, b) => sum + (b.copiesCount || 1), 0);
+  const activeLoansCount = loans.filter((l) => isActiveLoan(l.status)).length;
+  const overdueCount = loans.filter((l) => checkIsOverdue(l)).length;
+
+  const resetForm = () => {
+    setEditBookId(null);
+    setBookForm({
+      title: '',
+      author: '',
+      genre: '',
+      isbn: '',
+      publicationYear: new Date().getFullYear(),
+      copiesCount: 1,
+      description: '',
+    });
+  };
+
   const handleBookSubmit = async (e) => {
     e.preventDefault();
     try {
       if (editBookId) {
-        // Оновлення книги
         await api.put(`/Books/${editBookId}`, {
           title: bookForm.title,
           author: bookForm.author,
           genre: bookForm.genre,
           isbn: bookForm.isbn,
           publicationYear: Number(bookForm.publicationYear),
+          description: bookForm.description,
         });
         showMsg('success', 'Інформацію про книгу успішно оновлено!');
       } else {
-        // Створення нової книги
         await api.post('/Books', {
           ...bookForm,
           publicationYear: Number(bookForm.publicationYear),
           copiesCount: Number(bookForm.copiesCount),
+          description: bookForm.description,
         });
         showMsg('success', 'Нову книгу та її примірники додано!');
       }
 
-      setBookForm({
-        title: '',
-        author: '',
-        genre: '',
-        isbn: '',
-        publicationYear: new Date().getFullYear(),
-        copiesCount: 1,
-      });
-      setEditBookId(null);
+      resetForm();
       fetchBooks();
     } catch (err) {
       showMsg('error', err.response?.data?.message || 'Помилка під час збереження книги.');
@@ -138,6 +126,7 @@ export default function Admin() {
       isbn: book.isbn || '',
       publicationYear: book.publicationYear || new Date().getFullYear(),
       copiesCount: 1,
+      description: book.description || '',
     });
   };
 
@@ -152,10 +141,6 @@ export default function Admin() {
     }
   };
 
-  // ==========================================
-  // ОБРОБНИКИ ДІЙ З ВИДАЧАМИ ТА БРОНЮВАННЯМИ
-  // ==========================================
-  // [FR-5] Оформлення видачі
   const handleIssueLoan = async (loanId) => {
     try {
       await api.post(`/Loans/${loanId}/issue`, { days: 14 });
@@ -166,18 +151,16 @@ export default function Admin() {
     }
   };
 
-  // [FR-6] Фіксація повернення книги
   const handleReturnLoan = async (loanId) => {
     try {
       await api.post(`/Loans/${loanId}/return`);
-      showMsg('success', 'Повернення книги успішно зафіксовано! Примірник знову в наявності.');
+      showMsg('success', 'Повернення книги успішно зафіксовано!');
       fetchActiveLoans();
     } catch (err) {
       showMsg('error', err.response?.data?.message || 'Помилка при фіксації повернення.');
     }
   };
 
-  // [FR-13] Скасування бронювання бібліотекарем
   const handleCancelLoan = async (loanId) => {
     if (!window.confirm('Ви дійсно бажаєте скасувати це бронювання?')) return;
     try {
@@ -190,37 +173,93 @@ export default function Admin() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto py-6 px-3 sm:px-6">
-      <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-6">⚙️ Панель бібліотекаря</h2>
+    <div className="max-w-7xl mx-auto space-y-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[#E5E7E3] pb-6">
+        <div>
+          <span className="px-2.5 py-1 bg-[#E8EFE8] text-[#294E40] text-xs font-bold rounded-full uppercase tracking-wider">
+            Адміністрування
+          </span>
+          <h1 className="text-3xl font-black text-[#25312B] tracking-tight mt-1">
+            Панель бібліотекаря
+          </h1>
+          <p className="text-sm text-[#69766E] mt-1">
+            Управління книжковим фондом, реєстрація видач та контроль дедлайнів
+          </p>
+        </div>
+      </div>
 
-      {/* Повідомлення про результат операції */}
+      {/* Messages */}
       {message.text && (
         <div
-          className={`p-4 mb-6 rounded-lg text-sm font-semibold flex items-center justify-between ${
-            message.type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-red-100 text-red-800 border border-red-200'
+          className={`p-4 rounded-xl text-sm font-semibold flex items-center justify-between border shadow-sm ${
+            message.type === 'success'
+              ? 'bg-[#E8EFE8] text-[#294E40] border-[#294E40]/20'
+              : 'bg-rose-50 text-rose-800 border-rose-200'
           }`}
         >
           <span>{message.text}</span>
-          <button onClick={() => setMessage({ type: '', text: '' })} className="text-sm font-bold opacity-70 hover:opacity-100">
-            ✕
-          </button>
+          <button onClick={() => setMessage({ type: '', text: '' })}>✕</button>
         </div>
       )}
 
-      {/* Перемикач розділів */}
-      <div className="flex border-b mb-8 border-gray-200 overflow-x-auto">
+      {/* Stats Overview */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white p-5 rounded-2xl border border-[#E5E7E3] shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-xs font-medium text-[#69766E] uppercase tracking-wider">Унікальних книг</p>
+            <p className="text-2xl font-black text-[#25312B] mt-1">{totalBooks}</p>
+          </div>
+          <div className="w-11 h-11 bg-[#E8EFE8] text-[#294E40] rounded-xl flex items-center justify-center text-xl font-bold">
+            📚
+          </div>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl border border-[#E5E7E3] shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-xs font-medium text-[#69766E] uppercase tracking-wider">Усього примірників</p>
+            <p className="text-2xl font-black text-[#25312B] mt-1">{totalCopies}</p>
+          </div>
+          <div className="w-11 h-11 bg-[#E8EFE8] text-[#294E40] rounded-xl flex items-center justify-center text-xl font-bold">
+            📖
+          </div>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl border border-[#E5E7E3] shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-xs font-medium text-[#69766E] uppercase tracking-wider">Книг на руках</p>
+            <p className="text-2xl font-black text-[#25312B] mt-1">{activeLoansCount}</p>
+          </div>
+          <div className="w-11 h-11 bg-[#E8EFE8] text-[#294E40] rounded-xl flex items-center justify-center text-xl font-bold">
+            🤝
+          </div>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl border border-[#E5E7E3] shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-xs font-medium text-[#69766E] uppercase tracking-wider">Прострочено</p>
+            <p className="text-2xl font-black text-rose-700 mt-1">{overdueCount}</p>
+          </div>
+          <div className="w-11 h-11 bg-rose-50 text-rose-700 rounded-xl flex items-center justify-center text-xl font-bold">
+            ⏰
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="bg-[#E8EFE8] p-1 rounded-xl inline-flex gap-1 border border-[#E5E7E3]">
         <button
           onClick={() => {
             setActiveSection('books');
             fetchBooks();
           }}
-          className={`py-3 px-6 font-bold text-sm whitespace-nowrap transition border-b-2 -mb-px ${
+          className={`px-5 py-2.5 rounded-lg text-sm font-bold transition ${
             activeSection === 'books'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'bg-white text-[#25312B] shadow-sm'
+              : 'text-[#69766E] hover:text-[#25312B]'
           }`}
         >
-          📚 Керування книгами
+          📚 Керування книгами ({books.length})
         </button>
 
         <button
@@ -228,98 +267,138 @@ export default function Admin() {
             setActiveSection('loans');
             fetchActiveLoans();
           }}
-          className={`py-3 px-6 font-bold text-sm whitespace-nowrap transition border-b-2 -mb-px ${
+          className={`px-5 py-2.5 rounded-lg text-sm font-bold transition ${
             activeSection === 'loans'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'bg-white text-[#25312B] shadow-sm'
+              : 'text-[#69766E] hover:text-[#25312B]'
           }`}
         >
-          📋 Активні видачі та боржники
+          📋 Активні видачі ({loans.length})
         </button>
       </div>
 
-      {/* ========================================== */}
-      {/* РОЗДІЛ 1: КЕРУВАННЯ КНИГАМИ               */}
-      {/* ========================================== */}
+      {/* SECTION 1: BOOKS */}
       {activeSection === 'books' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Форма додання/редагування книги */}
-          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 lg:col-span-1 h-fit">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">
-              {editBookId ? '✏️ Редагувати книгу' : '➕ Додати нову книгу'}
-            </h3>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Form */}
+          <div className="lg:col-span-4 bg-white p-6 rounded-2xl shadow-sm border border-[#E5E7E3] space-y-5">
+            <div>
+              <h3 className="text-lg font-extrabold text-[#25312B]">
+                {editBookId ? '✏️ Редагувати книгу' : '➕ Додати нову книгу'}
+              </h3>
+              <p className="text-xs text-[#69766E] mt-0.5">
+                Заповніть метадані та детальний опис книги
+              </p>
+            </div>
 
             <form onSubmit={handleBookSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Назва книги</label>
+                <label className="block text-xs font-bold text-[#69766E] uppercase tracking-wider mb-1">
+                  Назва книги
+                </label>
                 <input
                   type="text"
                   required
                   value={bookForm.title}
                   onChange={(e) => setBookForm({ ...bookForm, title: e.target.value })}
-                  placeholder="Наприклад: 1984"
-                  className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="Clean Architecture"
+                  className="w-full px-3.5 py-2.5 bg-[#FAF9F6] border border-[#E5E7E3] rounded-xl text-sm focus:bg-white focus:ring-1 focus:ring-[#294E40] focus:border-[#294E40] outline-none text-[#25312B]"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Автор</label>
+                <label className="block text-xs font-bold text-[#69766E] uppercase tracking-wider mb-1">
+                  Автор
+                </label>
                 <input
                   type="text"
                   required
                   value={bookForm.author}
                   onChange={(e) => setBookForm({ ...bookForm, author: e.target.value })}
-                  placeholder="Джордж Орвелл"
-                  className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="Роберт Мартін"
+                  className="w-full px-3.5 py-2.5 bg-[#FAF9F6] border border-[#E5E7E3] rounded-xl text-sm focus:bg-white focus:ring-1 focus:ring-[#294E40] focus:border-[#294E40] outline-none text-[#25312B]"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Жанр</label>
+                <label className="block text-xs font-bold text-[#69766E] uppercase tracking-wider mb-1">
+                  Жанр
+                </label>
                 <input
                   type="text"
                   required
                   value={bookForm.genre}
                   onChange={(e) => setBookForm({ ...bookForm, genre: e.target.value })}
-                  placeholder="Антиутопія"
-                  className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="Програмування"
+                  className="w-full px-3.5 py-2.5 bg-[#FAF9F6] border border-[#E5E7E3] rounded-xl text-sm focus:bg-white focus:ring-1 focus:ring-[#294E40] focus:border-[#294E40] outline-none text-[#25312B]"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">ISBN</label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-xs font-bold text-[#69766E] uppercase tracking-wider">
+                    Опис книги (опціонально)
+                  </label>
+                  <span
+                    className={`text-[10px] font-bold ${
+                      (bookForm.description?.length || 0) >= 2000
+                        ? 'text-rose-600'
+                        : 'text-[#69766E]'
+                    }`}
+                  >
+                    {bookForm.description?.length || 0} / 2000
+                  </span>
+                </div>
+                <textarea
+                  rows="3"
+                  maxLength={2000}
+                  value={bookForm.description}
+                  onChange={(e) => setBookForm({ ...bookForm, description: e.target.value })}
+                  placeholder="Коротка анотація, про що книга (до 2000 символів)..."
+                  className="w-full px-3.5 py-2.5 bg-[#FAF9F6] border border-[#E5E7E3] rounded-xl text-sm focus:bg-white focus:ring-1 focus:ring-[#294E40] focus:border-[#294E40] outline-none text-[#25312B] resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#69766E] uppercase tracking-wider mb-1">
+                  ISBN
+                </label>
                 <input
                   type="text"
                   required
                   value={bookForm.isbn}
                   onChange={(e) => setBookForm({ ...bookForm, isbn: e.target.value })}
-                  placeholder="978-0451524935"
-                  className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="978-0134494166"
+                  className="w-full px-3.5 py-2.5 bg-[#FAF9F6] border border-[#E5E7E3] rounded-xl text-sm focus:bg-white focus:ring-1 focus:ring-[#294E40] focus:border-[#294E40] outline-none text-[#25312B]"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Рік видання</label>
+                  <label className="block text-xs font-bold text-[#69766E] uppercase tracking-wider mb-1">
+                    Рік видання
+                  </label>
                   <input
                     type="number"
                     required
                     value={bookForm.publicationYear}
                     onChange={(e) => setBookForm({ ...bookForm, publicationYear: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-3.5 py-2.5 bg-[#FAF9F6] border border-[#E5E7E3] rounded-xl text-sm focus:bg-white focus:ring-1 focus:ring-[#294E40] focus:border-[#294E40] outline-none text-[#25312B]"
                   />
                 </div>
 
                 {!editBookId && (
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Примірників</label>
+                    <label className="block text-xs font-bold text-[#69766E] uppercase tracking-wider mb-1">
+                      Кількість
+                    </label>
                     <input
                       type="number"
                       min="1"
                       required
                       value={bookForm.copiesCount}
                       onChange={(e) => setBookForm({ ...bookForm, copiesCount: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                      className="w-full px-3.5 py-2.5 bg-[#FAF9F6] border border-[#E5E7E3] rounded-xl text-sm focus:bg-white focus:ring-1 focus:ring-[#294E40] focus:border-[#294E40] outline-none text-[#25312B]"
                     />
                   </div>
                 )}
@@ -328,25 +407,15 @@ export default function Admin() {
               <div className="flex gap-2 pt-2">
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-sm transition shadow-sm"
+                  className="flex-1 py-3 bg-[#294E40] hover:bg-[#1f3a30] text-white font-bold rounded-xl text-sm transition shadow-sm"
                 >
-                  {editBookId ? 'Зберегти зміни' : 'Створити книгу'}
+                  {editBookId ? 'Зберегти зміни' : 'Додати у фонд'}
                 </button>
                 {editBookId && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setEditBookId(null);
-                      setBookForm({
-                        title: '',
-                        author: '',
-                        genre: '',
-                        isbn: '',
-                        publicationYear: new Date().getFullYear(),
-                        copiesCount: 1,
-                      });
-                    }}
-                    className="px-3 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 font-semibold rounded-lg text-sm transition"
+                    onClick={resetForm}
+                    className="px-4 py-3 bg-[#E8EFE8] hover:bg-[#dbe7db] text-[#25312B] font-bold rounded-xl text-sm transition"
                   >
                     Скасувати
                   </button>
@@ -355,49 +424,60 @@ export default function Admin() {
             </form>
           </div>
 
-          {/* Таблиця наявних книг у бібліотеці */}
-          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 lg:col-span-2">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Наявні книги у фонді</h3>
+          {/* Table */}
+          <div className="lg:col-span-8 bg-white rounded-2xl shadow-sm border border-[#E5E7E3] overflow-hidden">
+            <div className="p-6 border-b border-[#E5E7E3]">
+              <h3 className="text-lg font-extrabold text-[#25312B]">Каталог книг у бібліотеці</h3>
+              <p className="text-xs text-[#69766E] mt-0.5">Усі зареєстровані найменування фонду</p>
+            </div>
 
             {loadingBooks ? (
-              <div className="py-8 text-center text-gray-500">Завантаження каталогу...</div>
+              <div className="py-12 text-center text-[#69766E]">Завантаження...</div>
             ) : books.length === 0 ? (
-              <div className="py-8 text-center text-gray-500">Каталог порожній. Додайте першу книгу!</div>
+              <div className="py-12 text-center text-[#69766E]">Каталог порожній.</div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
+                <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b bg-gray-50 text-gray-600">
-                      <th className="p-3">Назва / Автор</th>
-                      <th className="p-3">Жанр</th>
-                      <th className="p-3">Рік</th>
-                      <th className="p-3 text-right">Дії</th>
+                    <tr className="bg-[#FAF9F6] border-b border-[#E5E7E3] text-xs font-bold text-[#69766E] uppercase">
+                      <th className="py-3.5 px-5">Назва / Автор</th>
+                      <th className="py-3.5 px-4">Жанр</th>
+                      <th className="py-3.5 px-4">Рік</th>
+                      <th className="py-3.5 px-5 text-right">Дії</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y">
+                  <tbody className="divide-y divide-[#E5E7E3] text-sm">
                     {books.map((b) => (
-                      <tr key={b.id} className="hover:bg-gray-50">
-                        <td className="p-3">
-                          <div className="font-bold text-gray-900">{b.title}</div>
-                          <div className="text-xs text-gray-500">{b.author}</div>
+                      <tr key={b.id} className="hover:bg-[#FAF9F6]/80 transition">
+                        <td className="py-4 px-5">
+                          <div className="font-bold text-[#25312B]">{b.title}</div>
+                          <div className="text-xs text-[#69766E] mt-0.5">{b.author || '—'}</div>
                         </td>
-                        <td className="p-3 text-xs">{b.genre}</td>
-                        <td className="p-3 text-xs">{b.publicationYear}</td>
-                        <td className="p-3 text-right space-x-2 whitespace-nowrap">
-                          <button
-                            onClick={() => handleEditClick(b)}
-                            className="px-2.5 py-1 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded text-xs font-semibold transition"
-                            title="Редагувати"
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            onClick={() => handleDeleteClick(b.id)}
-                            className="px-2.5 py-1 bg-red-50 text-red-700 hover:bg-red-100 rounded text-xs font-semibold transition"
-                            title="Видалити"
-                          >
-                            🗑️
-                          </button>
+                        <td className="py-4 px-4 whitespace-nowrap">
+                          <span className="px-2.5 py-1 bg-[#E8EFE8] text-[#294E40] text-xs font-bold rounded-lg border border-[#E5E7E3]">
+                            {b.genre || 'Література'}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 text-xs font-semibold text-[#69766E] whitespace-nowrap">
+                          {b.publicationYear}
+                        </td>
+                        <td className="py-4 px-5 text-right whitespace-nowrap">
+                          <div className="inline-flex gap-1.5">
+                            <button
+                              onClick={() => handleEditClick(b)}
+                              className="p-2 text-amber-700 hover:bg-amber-50 rounded-lg transition"
+                              title="Редагувати"
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              onClick={() => handleDeleteClick(b.id)}
+                              className="p-2 text-rose-700 hover:bg-rose-50 rounded-lg transition"
+                              title="Видалити"
+                            >
+                              🗑️
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -409,98 +489,87 @@ export default function Admin() {
         </div>
       )}
 
-      {/* ========================================== */}
-      {/* РОЗДІЛ 2: АКТИВНІ ВИДАЧІ ТА БОРЖНИКИ       */}
-      {/* ========================================== */}
+      {/* SECTION 2: LOANS */}
       {activeSection === 'loans' && (
-        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
-          <h3 className="text-lg font-bold text-gray-800 mb-4">Активні бронювання та видачі</h3>
+        <div className="bg-white rounded-2xl shadow-sm border border-[#E5E7E3] overflow-hidden">
+          <div className="p-6 border-b border-[#E5E7E3]">
+            <h3 className="text-lg font-extrabold text-[#25312B]">Журнал активних видач</h3>
+            <p className="text-xs text-[#69766E] mt-0.5">Обробка замовлень та контроль дедлайнів</p>
+          </div>
 
           {loadingLoans ? (
-            <div className="py-8 text-center text-gray-500">Завантаження записів...</div>
+            <div className="py-12 text-center text-[#69766E]">Завантаження...</div>
           ) : loans.length === 0 ? (
-            <div className="py-8 text-center text-gray-500">Немає активних видач або заброньованих книг.</div>
+            <div className="py-12 text-center text-[#69766E]">Активних видач немає.</div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
+              <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b bg-gray-50 text-gray-600">
-                    <th className="p-3">Читач</th>
-                    <th className="p-3">Книга / Примірник</th>
-                    <th className="p-3">Статус</th>
-                    <th className="p-3">Дедлайн</th>
-                    <th className="p-3 text-right">Управління</th>
+                  <tr className="bg-[#FAF9F6] border-b border-[#E5E7E3] text-xs font-bold text-[#69766E] uppercase">
+                    <th className="py-3.5 px-5">Читач</th>
+                    <th className="py-3.5 px-5">Книга</th>
+                    <th className="py-3.5 px-4">Статус</th>
+                    <th className="py-3.5 px-4">Дедлайн</th>
+                    <th className="py-3.5 px-5 text-right">Управління</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y">
+                <tbody className="divide-y divide-[#E5E7E3] text-sm">
                   {loans.map((loan) => {
                     const overdue = checkIsOverdue(loan);
                     const isPending = isPendingReservation(loan.status);
-                    const isActive = isActiveLoan(loan.status);
 
                     return (
-                      <tr key={loan.id} className="hover:bg-gray-50">
-                        <td className="p-3">
-                          <div className="font-semibold text-gray-900">{loan.readerName || loan.readerEmail || 'Читач'}</div>
-                          <div className="text-xs text-gray-400">{loan.readerEmail}</div>
+                      <tr key={loan.id} className="hover:bg-[#FAF9F6]/80 transition">
+                        <td className="py-4 px-5">
+                          <div className="font-bold text-[#25312B]">{loan.readerName || loan.readerEmail}</div>
+                          <div className="text-xs text-[#69766E]">{loan.readerEmail}</div>
                         </td>
-
-                        <td className="p-3">
-                          <div className="font-bold text-gray-800">{loan.bookTitle || loan.book?.title || 'Назва книги'}</div>
-                          <div className="text-xs text-gray-500">Код: {loan.inventoryNumber || '—'}</div>
+                        <td className="py-4 px-5">
+                          <div className="font-bold text-[#25312B]">{loan.bookTitle || loan.book?.title}</div>
                         </td>
-
-                        <td className="p-3">
+                        <td className="py-4 px-4 whitespace-nowrap">
                           <span
-                            className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                            className={`px-3 py-1 rounded-full text-xs font-extrabold border ${
                               overdue
-                                ? 'bg-red-100 text-red-800'
+                                ? 'bg-rose-50 text-rose-800 border-rose-200'
                                 : isPending
-                                ? 'bg-amber-100 text-amber-800'
-                                : 'bg-green-100 text-green-800'
+                                ? 'bg-[#E8EFE8] text-[#294E40] border-[#294E40]/20'
+                                : 'bg-emerald-50 text-emerald-800 border-emerald-200'
                             }`}
                           >
-                            {overdue
-                              ? '⚠️ Прострочено'
-                              : isPending
-                              ? '📌 Заброньовано'
-                              : '📖 Видано'}
+                            {overdue ? '⚠️ Прострочено' : isPending ? '📌 Заброньовано' : '📖 На руках'}
                           </span>
                         </td>
-
-                        <td className="p-3 text-xs whitespace-nowrap">
-                          {loan.dueDate ? new Date(loan.dueDate).toLocaleDateString() : '—'}
+                        <td className="py-4 px-4 text-xs font-semibold text-[#69766E]">
+                          {loan.dueDate ? new Date(loan.dueDate).toLocaleDateString('uk-UA') : '—'}
                         </td>
-
-                        <td className="p-3 text-right space-x-2 whitespace-nowrap">
-                          {/* Дії для Заброньованих книг (Pending/Reserved) */}
-                          {isPending && (
-                            <>
+                        <td className="py-4 px-5 text-right whitespace-nowrap">
+                          <div className="inline-flex gap-2">
+                            {isPending && (
+                              <>
+                                <button
+                                  onClick={() => handleIssueLoan(loan.id)}
+                                  className="px-3.5 py-1.5 bg-[#294E40] hover:bg-[#1f3a30] text-white rounded-lg text-xs font-bold transition shadow-sm"
+                                >
+                                  Видати
+                                </button>
+                                <button
+                                  onClick={() => handleCancelLoan(loan.id)}
+                                  className="px-3.5 py-1.5 bg-rose-50 text-rose-700 rounded-lg text-xs font-bold transition border border-rose-200"
+                                >
+                                  Скасувати
+                                </button>
+                              </>
+                            )}
+                            {!isPending && (
                               <button
-                                onClick={() => handleIssueLoan(loan.id)}
-                                className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-semibold shadow-sm transition"
+                                onClick={() => handleReturnLoan(loan.id)}
+                                className="px-3.5 py-1.5 bg-[#294E40] hover:bg-[#1f3a30] text-white rounded-lg text-xs font-bold transition shadow-sm"
                               >
-                                Видати читачу
+                                Прийняти повернення
                               </button>
-
-                              <button
-                                onClick={() => handleCancelLoan(loan.id)}
-                                className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-semibold shadow-sm transition"
-                              >
-                                Скасувати бронь
-                              </button>
-                            </>
-                          )}
-
-                          {/* Дії для Виданих/Прострочених книг (Active/Issued/Overdue) */}
-                          {(isActive || overdue) && (
-                            <button
-                              onClick={() => handleReturnLoan(loan.id)}
-                              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-semibold shadow-sm transition"
-                            >
-                              Прийняти повернення
-                            </button>
-                          )}
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );

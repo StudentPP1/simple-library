@@ -3,27 +3,26 @@ import api from '../../services/api';
 
 export default function Catalog() {
   const [books, setBooks] = useState([]);
-  const [search, setSearch] = useState('');
-  const [genre, setGenre] = useState('');
   const [loading, setLoading] = useState(true);
-  const [actionMessage, setActionMessage] = useState({ id: null, type: '', text: '' });
+  const [search, setSearch] = useState('');
+  const [selectedGenre, setSelectedGenre] = useState('');
+  const [genres, setGenres] = useState([]);
+  const [reservingId, setReservingId] = useState(null);
+  const [selectedBookForDetails, setSelectedBookForDetails] = useState(null); // Модальне вікно
+  const [message, setMessage] = useState({ type: '', text: '' });
 
   const fetchBooks = async () => {
     setLoading(true);
     try {
-      const params = {};
-      if (search.trim()) params.search = search.trim();
-      if (genre.trim()) params.genre = genre.trim();
-
-      const response = await api.get('/Books', { params });
-
-      // Розпаковуємо ApiResponse<PagedResponse<BookResponse>>
-      const pagedData = response.data?.data;
-      const items = pagedData?.items || (Array.isArray(pagedData) ? pagedData : []);
-
+      const response = await api.get('/Books?pageSize=100');
+      const items = response.data?.data?.items || response.data?.data || [];
       setBooks(items);
+
+      const uniqueGenres = [...new Set(items.map((b) => b.genre).filter(Boolean))];
+      setGenres(uniqueGenres);
     } catch (err) {
       console.error('Помилка завантаження каталогу:', err);
+      showMessage('error', 'Не вдалося завантажити каталог книг.');
     } finally {
       setLoading(false);
     }
@@ -33,132 +32,261 @@ export default function Catalog() {
     fetchBooks();
   }, []);
 
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    fetchBooks();
+  const showMessage = (type, text) => {
+    setMessage({ type, text });
+    setTimeout(() => setMessage({ type: '', text: '' }), 4000);
   };
 
-  const handleReset = () => {
-    setSearch('');
-    setGenre('');
-    setTimeout(() => {
-      fetchBooks();
-    }, 50);
-  };
-
-  const handleReserve = async (book) => {
-    setActionMessage({ id: book.id, type: 'info', text: 'Обробка бронювання...' });
-
-    try {
-      const response = await api.post('/Loans/reserve', {
-        bookId: book.id
-      });
-
-      if (response.data?.success) {
-        setActionMessage({ id: book.id, type: 'success', text: 'Книгу успішно заброньовано!' });
-      } else {
-        setActionMessage({
-          id: book.id,
-          type: 'error',
-          text: response.data?.message || 'Не вдалося забронювати книгу.'
-        });
-      }
-    } catch (err) {
-      setActionMessage({
-        id: book.id,
-        type: 'error',
-        text: err.response?.data?.message || 'Помилка під час бронювання.'
-      });
+  const handleReserve = async (bookId) => {
+    const token = localStorage.getItem('jwt_token') || localStorage.getItem('token');
+    if (!token) {
+      showMessage('error', 'Будь ласка, увійдіть в акаунт, щоб забронювати книгу.');
+      return;
     }
 
-    setTimeout(() => {
-      setActionMessage({ id: null, type: '', text: '' });
-    }, 4000);
+    setReservingId(bookId);
+    try {
+      await api.post('/Loans/reserve', { bookId });
+      showMessage('success', 'Книгу успішно заброньовано! Вона чекає на вас у кабінеті.');
+      fetchBooks();
+      if (selectedBookForDetails?.id === bookId) {
+        setSelectedBookForDetails(null); // Закриваємо модалку після замовлення
+      }
+    } catch (err) {
+      showMessage('error', err.response?.data?.message || 'Не вдалося забронювати книгу.');
+    } finally {
+      setReservingId(null);
+    }
   };
 
+  const filteredBooks = books.filter((book) => {
+    const matchesSearch =
+      book.title?.toLowerCase().includes(search.toLowerCase()) ||
+      book.author?.toLowerCase().includes(search.toLowerCase());
+    const matchesGenre = selectedGenre ? book.genre === selectedGenre : true;
+    return matchesSearch && matchesGenre;
+  });
+
   return (
-    <div className="max-w-6xl mx-auto py-8 px-4">
-      <h2 className="text-3xl font-bold mb-8 text-center text-gray-800">Каталог книг</h2>
+    <div className="space-y-8">
+      {/* Hero Banner in Forest Green */}
+      <div className="relative overflow-hidden bg-[#294E40] text-white rounded-3xl p-8 sm:p-12 shadow-lg border border-[#294E40]/20">
+        <div className="relative z-10 max-w-2xl space-y-4">
+          <span className="px-3 py-1 bg-[#E8EFE8]/20 text-[#E8EFE8] border border-[#E8EFE8]/30 text-xs font-bold rounded-full uppercase tracking-wider">
+            Бібліотечна колекція
+          </span>
+          <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight">
+            Знайдіть свою наступну книгу
+          </h1>
+          <p className="text-[#E8EFE8]/90 text-sm sm:text-base font-medium">
+            Бронюйте примірники онлайн та отримуйте їх у бібліотеці за декілька хвилин.
+          </p>
 
-      {/* Форма пошуку */}
-      <form onSubmit={handleSearchSubmit} className="bg-white p-4 rounded-xl shadow-md mb-8 border border-gray-100 flex flex-col sm:flex-row gap-4 items-center">
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Пошук за назвою або автором..."
-          className="flex-1 px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-        />
+          {/* Search Inputs */}
+          <div className="pt-2 flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-[#E8EFE8]/70">
+                🔍
+              </span>
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Пошук за назвою або автором..."
+                className="w-full pl-10 pr-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-[#E8EFE8] text-sm"
+              />
+            </div>
 
-        <input
-          type="text"
-          value={genre}
-          onChange={(e) => setGenre(e.target.value)}
-          placeholder="Жанр"
-          className="w-full sm:w-48 px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-
-        <div className="flex gap-2 w-full sm:w-auto">
-          <button
-            type="submit"
-            className="flex-1 sm:flex-none px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition"
-          >
-            Шукати
-          </button>
-          <button
-            type="button"
-            onClick={handleReset}
-            className="px-4 py-2.5 bg-gray-100 text-gray-600 font-semibold rounded-lg hover:bg-gray-200 transition"
-          >
-            Скинути
-          </button>
+            {genres.length > 0 && (
+              <select
+                value={selectedGenre}
+                onChange={(e) => setSelectedGenre(e.target.value)}
+                className="px-4 py-3 bg-[#1f3a30] border border-white/20 text-white rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#E8EFE8]"
+              >
+                <option value="">Усі жанри ({genres.length})</option>
+                {genres.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
         </div>
-      </form>
+      </div>
 
-      {/* Список книг */}
+      {/* Alert Messages */}
+      {message.text && (
+        <div
+          className={`p-4 rounded-2xl text-sm font-bold flex items-center justify-between border shadow-sm ${
+            message.type === 'success'
+              ? 'bg-[#E8EFE8] text-[#294E40] border-[#294E40]/30'
+              : 'bg-rose-50 text-rose-800 border-rose-200'
+          }`}
+        >
+          <span>{message.text}</span>
+          <button onClick={() => setMessage({ type: '', text: '' })}>✕</button>
+        </div>
+      )}
+
+      {/* Book Grid */}
       {loading ? (
-        <div className="text-center py-12 text-gray-500">Завантаження каталогу...</div>
-      ) : books.length === 0 ? (
-        <div className="text-center py-12 text-gray-500 bg-white rounded-xl shadow-sm border p-8">
-          Книг за вашим запитом не знайдено.
+        <div className="py-20 text-center text-[#69766E] font-medium">
+          Завантаження бібліотечного фонду...
+        </div>
+      ) : filteredBooks.length === 0 ? (
+        <div className="bg-white rounded-3xl p-12 text-center border border-[#E5E7E3] shadow-sm space-y-3">
+          <span className="text-4xl">📚</span>
+          <h3 className="text-lg font-extrabold text-[#25312B]">За вашим запитом нічого не знайдено</h3>
+          <p className="text-sm text-[#69766E]">Спробуйте змінити фільтр або пошукове слово.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {books.map((book) => (
-            <div key={book.id} className="bg-white p-6 rounded-xl shadow-md border border-gray-100 flex flex-col justify-between hover:shadow-lg transition">
-              <div>
-                <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full uppercase tracking-wider">
-                  {book.genre || 'Без жанру'}
-                </span>
-                <h3 className="text-xl font-bold text-gray-900 mt-3 mb-1">{book.title}</h3>
-                <p className="text-gray-600 text-sm mb-3">
-                  Автор: <span className="font-semibold text-gray-800">{book.author}</span>
-                </p>
-                <div className="text-xs text-gray-400 space-y-1 mb-4">
-                  <p>Рік видання: {book.publicationYear || '—'}</p>
-                  <p>ISBN: {book.isbn || '—'}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filteredBooks.map((book) => {
+            const availableCount = book.availableCopiesCount ?? book.copiesCount ?? 1;
+            const isAvailable = availableCount > 0;
+
+            return (
+              <div
+                key={book.id}
+                className="bg-white rounded-2xl border border-[#E5E7E3] shadow-sm hover:shadow-md hover:-translate-y-1 transition duration-200 flex flex-col justify-between overflow-hidden group relative"
+              >
+                <div className="p-6 space-y-3">
+                  <div className="flex justify-between items-start gap-2 pr-6">
+                    {/* Soft Sage Badge */}
+                    <span className="px-2.5 py-1 bg-[#E8EFE8] text-[#294E40] text-[11px] font-bold rounded-lg border border-[#E5E7E3]">
+                      {book.genre || 'Література'}
+                    </span>
+                    <span
+                      className={`px-2.5 py-1 rounded-full text-[11px] font-extrabold border ${
+                        isAvailable
+                          ? 'bg-[#E8EFE8] text-[#294E40] border-[#294E40]/20'
+                          : 'bg-rose-50 text-rose-700 border-rose-200'
+                      }`}
+                    >
+                      {isAvailable ? `В наявності: ${availableCount}` : 'Немає'}
+                    </span>
+                  </div>
+
+                  {/* Кнопка ТРИ КРАПКИ (Деталі) */}
+                  <button
+                    onClick={() => setSelectedBookForDetails(book)}
+                    title="Переглянути деталі книги"
+                    className="absolute top-4 right-4 w-8 h-8 bg-[#E8EFE8] hover:bg-[#294E40] hover:text-white text-[#294E40] rounded-xl flex items-center justify-center font-bold text-sm transition shadow-sm border border-[#E5E7E3]"
+                  >
+                    •••
+                  </button>
+
+                  <div>
+                    <h3 className="text-lg font-black text-[#25312B] group-hover:text-[#294E40] transition line-clamp-2">
+                      {book.title}
+                    </h3>
+                    <p className="text-xs font-semibold text-[#69766E] mt-1">
+                      {book.author || 'Автор не вказаний'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-6 pt-0 space-y-4">
+                  <div className="text-[11px] text-[#69766E] flex justify-between font-medium border-t border-[#E5E7E3] pt-3">
+                    <span>Рік: {book.publicationYear || '—'}</span>
+                    <span>ISBN: {book.isbn || '—'}</span>
+                  </div>
+
+                  {/* Forest Green Button */}
+                  <button
+                    onClick={() => handleReserve(book.id)}
+                    disabled={!isAvailable || reservingId === book.id}
+                    className="w-full py-3 bg-[#294E40] hover:bg-[#1f3a30] disabled:bg-[#E5E7E3] disabled:text-[#69766E] text-white font-bold rounded-xl text-xs transition shadow-sm flex items-center justify-center gap-2"
+                  >
+                    {reservingId === book.id ? (
+                      'Оформлення...'
+                    ) : isAvailable ? (
+                      <>
+                        <span>📌</span>
+                        <span>Забронювати книгу</span>
+                      </>
+                    ) : (
+                      'Усі примірники видано'
+                    )}
+                  </button>
                 </div>
               </div>
+            );
+          })}
+        </div>
+      )}
 
+      {/* ========================================== */}
+      {/* МОДАЛЬНЕ ВІКНО ДЕТАЛЕЙ КНИГИ              */}
+      {/* ========================================== */}
+      {selectedBookForDetails && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl border border-[#E5E7E3] shadow-2xl max-w-lg w-full p-6 sm:p-8 space-y-6 relative overflow-hidden">
+            {/* Кнопка закриття */}
+            <button
+              onClick={() => setSelectedBookForDetails(null)}
+              className="absolute top-5 right-5 w-9 h-9 bg-[#E8EFE8] hover:bg-rose-100 hover:text-rose-700 text-[#25312B] rounded-xl flex items-center justify-center font-black transition"
+            >
+              ✕
+            </button>
+
+            {/* Шапка детального перегляду */}
+            <div className="space-y-3">
+              <span className="px-3 py-1 bg-[#E8EFE8] text-[#294E40] text-xs font-bold rounded-lg border border-[#E5E7E3] inline-block">
+                {selectedBookForDetails.genre || 'Література'}
+              </span>
+
+              <h2 className="text-2xl font-black text-[#25312B] pr-8">
+                {selectedBookForDetails.title}
+              </h2>
+              <p className="text-sm font-bold text-[#69766E]">
+                Автор: {selectedBookForDetails.author || 'Не вказано'}
+              </p>
+            </div>
+
+            {/* Блок з описом книги */}
+            <div className="space-y-2 border-t border-b border-[#E5E7E3] py-4">
+              <h4 className="text-xs font-extrabold text-[#69766E] uppercase tracking-wider">
+                Опис та анотація
+              </h4>
+              <p className="text-sm text-[#25312B] leading-relaxed whitespace-pre-line bg-[#FAF9F6] p-4 rounded-2xl border border-[#E5E7E3] max-h-48 overflow-y-auto">
+                {selectedBookForDetails.description || 'Опис для цієї книги ще не додано бібліотекарем.'}
+              </p>
+            </div>
+
+            {/* Метадані */}
+            <div className="grid grid-cols-2 gap-4 text-xs font-semibold text-[#69766E]">
               <div>
-                {actionMessage.id === book.id && (
-                  <div className={`p-2 mb-3 text-xs rounded font-medium ${
-                    actionMessage.type === 'success' ? 'bg-green-100 text-green-800' :
-                    actionMessage.type === 'error' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
-                  }`}>
-                    {actionMessage.text}
-                  </div>
-                )}
-
-                <button
-                  onClick={() => handleReserve(book)}
-                  className="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition shadow-sm text-sm"
-                >
-                  📌 Забронювати книгу
-                </button>
+                <span className="block text-[10px] text-[#69766E] uppercase">ISBN</span>
+                <span className="text-[#25312B] font-bold">{selectedBookForDetails.isbn || '—'}</span>
+              </div>
+              <div>
+                <span className="block text-[10px] text-[#69766E] uppercase">Рік видання</span>
+                <span className="text-[#25312B] font-bold">{selectedBookForDetails.publicationYear || '—'}</span>
               </div>
             </div>
-          ))}
+
+            {/* Дії у модальному вікні */}
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setSelectedBookForDetails(null)}
+                className="flex-1 py-3 bg-[#E8EFE8] hover:bg-[#dbe7db] text-[#25312B] font-bold rounded-xl text-xs transition"
+              >
+                Закрити
+              </button>
+              <button
+                onClick={() => handleReserve(selectedBookForDetails.id)}
+                disabled={
+                  (selectedBookForDetails.availableCopiesCount ?? selectedBookForDetails.copiesCount ?? 1) <= 0 ||
+                  reservingId === selectedBookForDetails.id
+                }
+                className="flex-1 py-3 bg-[#294E40] hover:bg-[#1f3a30] disabled:bg-[#E5E7E3] disabled:text-[#69766E] text-white font-bold rounded-xl text-xs transition shadow-sm"
+              >
+                {reservingId === selectedBookForDetails.id ? 'Оформлення...' : '📌 Забронювати'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
