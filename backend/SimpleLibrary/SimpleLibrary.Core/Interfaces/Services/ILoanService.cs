@@ -11,5 +11,7 @@ namespace SimpleLibrary.Core.Interfaces.Services
 
         Task<ServiceResponse<IEnumerable<LoanResponse>>> GetReaderLoansAsync(Guid readerId);
         Task<ServiceResponse<IEnumerable<LoanResponse>>> GetActiveLoansAsync();
+
+        Task CancelExpiredReservationsAsync();
     }
 }

@@ -173,13 +173,13 @@ namespace SimpleLibrary.API.Controllers
 
             return response.Error switch
             {
-                ErrorType.Conflict => Conflict(apiResponse),
-                ErrorType.NotFound => NotFound(apiResponse),
-                ErrorType.Unauthorized => Unauthorized(apiResponse),
-                ErrorType.Validation => BadRequest(apiResponse),
-                _ => StatusCode(500, apiResponse)
+                ErrorType.Conflict => Conflict(apiResponse),           // HTTP 409
+                ErrorType.NotFound => NotFound(apiResponse),           // HTTP 404
+                ErrorType.Unauthorized => Unauthorized(apiResponse),   // HTTP 401
+                ErrorType.Forbidden => StatusCode(403, apiResponse),   // HTTP 403
+                ErrorType.Validation => BadRequest(apiResponse),       // HTTP 400
+                _ => StatusCode(500, apiResponse)                      // HTTP 500
             };
-
         }
     }
 }

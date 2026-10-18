@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SimpleLibrary.Core.Enums;
+using SimpleLibrary.Core.Interfaces.Services;
 using SimpleLibrary.DataAccess.Postgres;
 
 namespace SimpleLibrary.API.Services
@@ -24,30 +25,11 @@ namespace SimpleLibrary.API.Services
                 try
                 {
                     using var scope = _serviceProvider.CreateScope();
-                    var dbContext = scope.ServiceProvider.GetRequiredService<LibraryDbContext>();
+                    var loanService = scope.ServiceProvider.GetRequiredService<ILoanService>();
 
-                    var expirationDate = DateTime.UtcNow.AddDays(-3);
+                    await loanService.CancelExpiredReservationsAsync();
 
-                    var expiredLoans = await dbContext.Loans
-                        .Include(l => l.BookCopy)
-                        .Where(l => l.Status == LoanStatus.Pending && l.ReservedAt <= expirationDate)
-                        .ToListAsync(stoppingToken);
-
-                    if (expiredLoans.Any())
-                    {
-                        foreach (var loan in expiredLoans)
-                        {
-                            loan.Cancel();
-
-                            if (loan.BookCopy != null)
-                            {
-                                loan.BookCopy.ChangeStatus(CopyStatus.Available);
-                            }
-                        }
-
-                        await dbContext.SaveChangesAsync(stoppingToken);
-                        _logger.LogInformation($"Автоматично скасовано {expiredLoans.Count} прострочених бронювань.");
-                    }
+                    _logger.LogInformation("Цикл перевірки прострочених бронювань завершено.");
                 }
                 catch (Exception ex)
                 {

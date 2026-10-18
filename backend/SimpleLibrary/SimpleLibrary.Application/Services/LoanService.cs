@@ -117,7 +117,7 @@ namespace SimpleLibrary.Application.Services
 
             if (currentUserRole != UserRole.Librarian.ToString() && loan.ReaderId != currentUserId)
             {
-                return ServiceResponse<bool>.Fail("Ви не маєте прав скасувати це бронювання.", ErrorType.Unauthorized);
+                return ServiceResponse<bool>.Fail("Ви не маєте прав скасувати це бронювання.", ErrorType.Forbidden);
             }
 
             loan.Cancel();
@@ -144,6 +144,32 @@ namespace SimpleLibrary.Application.Services
         {
             var loans = await _unitOfWork.LoanRepository.GetActiveLoansAsync();
             return ServiceResponse<IEnumerable<LoanResponse>>.Ok(loans.Select(MapToResponse));
+        }
+
+        public async Task CancelExpiredReservationsAsync()
+        {
+            var expirationDate = DateTime.UtcNow.AddDays(-3);
+            var expiredLoans = await _unitOfWork.LoanRepository.GetExpiredPendingLoansAsync(expirationDate);
+
+            if (!expiredLoans.Any()) return;
+
+            foreach (var loan in expiredLoans)
+            {
+                loan.Cancel();
+                if (loan.BookCopy != null)
+                {
+                    loan.BookCopy.ChangeStatus(CopyStatus.Available);
+                }
+            }
+
+            try
+            {
+                await _unitOfWork.SaveChangesAsync();
+            }
+            catch (Exception)
+            {
+                // Ігноруємо помилки конкуренції для фонового завдання
+            }
         }
 
         private static LoanResponse MapToResponse(Loan loan)
