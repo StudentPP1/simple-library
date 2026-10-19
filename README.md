@@ -14,7 +14,7 @@
 | Михайло Макутонін | Team Lead, DevOps | планування спринтів, код-рев'ю, деплой |
 | Максим Лосєв | Backend Developer | ASP.NET Core API, бізнес-логіка, база даних |
 | Michael Bondarchuk | Frontend Developer | React SPA, інтерфейс читача та бібліотекаря |
-| Денис Ренцевич | QA Engineer, DevOps | тестування, CI (GitHub Actions), деплой |
+| Денис Ренцевич | QA Engineer | тестування, CI (GitHub Actions) |
 
 ## Технології
 
@@ -96,8 +96,7 @@ docker compose up -d --build
 | Фронтенд | http://localhost:3000 |
 | API | http://localhost:5000/api |
 | Swagger | http://localhost:5000/swagger |
-
-Міграції бази даних застосовуються автоматично під час старту бекенду.
+| Стан сервера | http://localhost:5000/health |
 
 Зупинити: `docker compose down`. 
 Видалити разом із даними БД: `docker compose down -v`.
@@ -115,14 +114,7 @@ React SPA (Cloudflare Pages) --HTTPS, JSON, JWT--> ASP.NET Core API (Cloud Run) 
 - Бекенд працює з базою через EF Core, міграції застосовуються автоматично під час старту.
 - Ендпоінт `/health` перевіряє, що бекенд працює і має з'єднання з базою даних.
 
-Інтеграцію виконано двома способами:
-
-| Середовище | Як запускається | Для чого |
-|---|---|---|
-| Локально | `docker compose up` (розділ [Запуск](#запуск)) | розробка, E2E- та навантажувальні тести |
-| Хмара | GitHub Actions, Google Cloud Run, Cloudflare Pages, Neon (розділ [Розгортання](#розгортання)) | робоча версія для користувачів |
-
-У Docker Compose порядок старту задано перевірками стану: бекенд стартує, коли база даних відповідає на `pg_isready`, а фронтенд - коли бекенд відповідає на `/health`.
+Інтеграцію виконано локально через Docker Compose (розділ [Запуск](#запуск)) і в хмарі (розділ [Розгортання](#розгортання)).
 
 ## Розгортання
 
@@ -137,11 +129,8 @@ React SPA (Cloudflare Pages) --HTTPS, JSON, JWT--> ASP.NET Core API (Cloud Run) 
 1. На кожен pull request і push у `main` CI ([ci.yml](.github/workflows/ci.yml)) запускає 6 перевірок: збірку й юніт-тести бекенду, збірку та лінтер фронтенду, API-тести (Newman) і E2E-тести в Chrome, Firefox та Edge.
 2. Після злиття в `main` бекенд деплоїться в Google Cloud Run ([deploy-backend.yml](.github/workflows/deploy-backend.yml)): спочатку юніт-тести, потім збірка образу й деплой.
 3. Фронтенд збирає та публікує Cloudflare Pages з гілки `main`.
-4. База даних - PostgreSQL на Neon, схема оновлюється міграціями під час старту бекенду.
 
 Доступність сайту та API відстежує UptimeRobot.
-
-Реєстрація бібліотекаря потребує інвайт-коду (`LIBRARIAN_INVITE_CODE`). Код не публікується в репозиторії, його видає тимлід.
 
 ## Управління залежностями
 
@@ -193,11 +182,11 @@ React SPA (Cloudflare Pages) --HTTPS, JSON, JWT--> ASP.NET Core API (Cloud Run) 
 | NFR-7 Різні розміри екранів | адаптивна верстка, бургер-меню на телефоні | Selenium, Lighthouse |
 | NFR-8 Завантаження до 2 с | ліниве завантаження сторінок, кешування статичних файлів | Lighthouse: 0,4-0,5 с на комп'ютері, до 1,8 с на телефоні з повільним 4G |
 
-Детальні результати тестування описані у звіті до лабораторної роботи №6 і в [tests/load/README.md](tests/load/README.md), [tests/lighthouse/README.md](tests/lighthouse/README.md).
+Як запустити тести - у розділі [Тести](#тести), детальні результати - у звіті до лабораторної роботи №6.
 
 ## Тести
 
-Навантажувальні тести (k6, 200 одночасних користувачів, NFR-3 і NFR-5), скрипт великої тестової бази й результати замірів описані в [tests/load/README.md](tests/load/README.md).
+API- та E2E-тести працюють із системою, запущеною через `docker compose` (розділ [Запуск](#запуск)). CI запускає їх на кожен push і pull request у `main`.
 
 Юніт-тести бекенду можна запустити в Docker, без встановленого .NET SDK:
 
@@ -205,29 +194,29 @@ React SPA (Cloudflare Pages) --HTTPS, JSON, JWT--> ASP.NET Core API (Cloud Run) 
 docker compose --profile test run --rm --build tests
 ```
 
-API-тести (Postman-колекція в `tests/api/`) запускаються через Newman на піднятому `docker compose`. Код бібліотекаря має збігатися з `LIBRARIAN_INVITE_CODE` у `.env`:
+API-тести (Postman-колекція в `tests/api/`) запускаються через Newman. Код бібліотекаря береться з `LIBRARIAN_INVITE_CODE` у `.env`; через спецсимволи в коді його не можна вписати прямо в команду:
 
-```bash
-npx newman run tests/api/SimpleLibrary.postman_collection.json -e tests/api/local.postman_environment.json --env-var librarianCode=<LIBRARIAN_INVITE_CODE>
+```powershell
+$code = ((Get-Content .env | Where-Object { $_ -like 'LIBRARIAN_INVITE_CODE=*' }) -split '=', 2)[1]
+$envFile = Get-Content tests/api/local.postman_environment.json -Raw -Encoding UTF8 | ConvertFrom-Json
+($envFile.values | Where-Object { $_.key -eq 'librarianCode' }).value = $code
+$tmp = Join-Path $env:TEMP 'simple-library.postman_environment.json'
+$envFile | ConvertTo-Json -Depth 10 | Set-Content $tmp -Encoding UTF8
+npx newman run tests/api/SimpleLibrary.postman_collection.json -e $tmp
+Remove-Item $tmp
 ```
 
 Колекцію можна також імпортувати в Postman разом з оточенням `local.postman_environment.json`.
 
-Стан сервісу та підключення до БД: `GET http://localhost:5000/health` (`Healthy` / `Unhealthy`).
-
-CI (GitHub Actions) на кожен push і pull request у `main` запускає всі ці тести, докладніше в розділі [Розгортання](#розгортання).
-
-Системні E2E-тести (Selenium + pytest, `tests/e2e/`) проходять сценарії читача й бібліотекаря в реальному браузері: Chrome, Firefox або Edge. Потрібні Python 3.12+ і запущений `docker compose`. Код бібліотекаря тести беруть з `.env`.
+Системні E2E-тести (Selenium + pytest, `tests/e2e/`) проходять сценарії читача й бібліотекаря в реальному браузері: Chrome, Firefox або Edge. Потрібен Python 3.12+, код бібліотекаря тести беруть з `.env`.
 
 ```bash
 python -m venv tests/e2e/.venv
-tests/e2e/.venv/Scripts/pip install -r tests/e2e/requirements.txt   # Linux/macOS: tests/e2e/.venv/bin/pip
+tests/e2e/.venv/Scripts/pip install -r tests/e2e/requirements.txt
 tests/e2e/.venv/Scripts/python -m pytest tests/e2e --browser chrome --html=tests/e2e/reports/report-chrome.html --self-contained-html
 ```
 
-Драйвер браузера Selenium завантажує сам. Щоб бачити вікно браузера, додайте `--headed`. Панель бібліотекаря показує лише перші 100 книг, тому тести краще запускати на свіжій базі (`docker compose down -v`).
-
-E2E-тести також запускаються в CI окремо для Chrome, Firefox і Edge.
+Навантажувальні тести (k6) і аудит швидкості сторінок (Lighthouse) описані в [tests/load/README.md](tests/load/README.md) і [tests/lighthouse/README.md](tests/lighthouse/README.md).
 
 ## Робота з Git
 
