@@ -1,11 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
 import Login from './pages/Login/Login';
-import Admin from './pages/Admin/Admin';
 import Register from './pages/Register/Register';
 import Catalog from './pages/Catalog/Catalog';
-import Dashboard from './pages/Dashboard/Dashboard';
-import ForgotPassword from './pages/Auth/ForgotPassword';
+
+// NFR-8: важкі сторінки за авторизацією вантажаться лише при переході. Каталог, вхід і реєстрація лишаються
+// в основному бандлі: вони маленькі й на них часто заходять за прямим посиланням (lazy додав би ще один запит)
+const Admin = lazy(() => import('./pages/Admin/Admin'));
+const Dashboard = lazy(() => import('./pages/Dashboard/Dashboard'));
+const ForgotPassword = lazy(() => import('./pages/Auth/ForgotPassword'));
 
 const getAuthData = () => {
   const token = localStorage.getItem('jwt_token') || localStorage.getItem('token');
@@ -13,10 +16,21 @@ const getAuthData = () => {
 
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
+
+    // ПЕРЕВІРКА ТЕРМІНУ ДІЇ ТОКЕНА
+    if (payload.exp && payload.exp * 1000 < Date.now()) {
+      console.warn('Термін дії токена закінчився. Виконуємо автоматичний вихід.');
+      localStorage.removeItem('token');
+      localStorage.removeItem('jwt_token');
+      return { isAuthenticated: false, role: null };
+    }
+
     const role =
       payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || payload.role;
     return { isAuthenticated: true, role };
   } catch (error) {
+    localStorage.removeItem('token');
+    localStorage.removeItem('jwt_token');
     return { isAuthenticated: false, role: null };
   }
 };
@@ -115,6 +129,8 @@ export default function App() {
             {/* Mobile Menu Toggle */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label={mobileMenuOpen ? 'Закрити меню' : 'Відкрити меню'}
+              aria-expanded={mobileMenuOpen}
               className="md:hidden p-2 text-[#25312B] hover:bg-[#E8EFE8] rounded-xl focus:outline-none"
             >
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -180,6 +196,7 @@ export default function App() {
 
         {/* Main Workspace */}
         <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+          <Suspense fallback={<div className="py-20 text-center text-[#69766E] font-medium">Завантаження...</div>}>
           <Routes>
             <Route path="/" element={<Navigate to="/catalog" replace />} />
             <Route
@@ -196,6 +213,7 @@ export default function App() {
             />
             <Route path="*" element={<Navigate to="/catalog" replace />} />
           </Routes>
+          </Suspense>
         </main>
       </div>
     </BrowserRouter>

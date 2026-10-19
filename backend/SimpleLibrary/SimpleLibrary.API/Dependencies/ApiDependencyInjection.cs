@@ -3,6 +3,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using SimpleLibrary.API.Services;
 using SimpleLibrary.Core.Interfaces.Services;
+using SimpleLibrary.DataAccess.Postgres;
 using System.Text;
 
 namespace SimpleLibrary.API.Dependencies
@@ -84,6 +85,10 @@ namespace SimpleLibrary.API.Dependencies
             });
 
             services.AddHostedService<ReservationCleanupService>();
+
+            // NFR-4: перевірка стану сервісу та доступності БД для моніторингу uptime
+            services.AddHealthChecks()
+                .AddDbContextCheck<LibraryDbContext>("postgres");
 
             return services;
         }
