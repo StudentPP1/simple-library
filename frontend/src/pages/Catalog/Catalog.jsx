@@ -93,6 +93,7 @@ export default function Catalog() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Пошук за назвою або автором..."
+                aria-label="Пошук за назвою або автором"
                 className="w-full pl-10 pr-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-[#E8EFE8] text-sm"
               />
             </div>
@@ -101,6 +102,7 @@ export default function Catalog() {
               <select
                 value={selectedGenre}
                 onChange={(e) => setSelectedGenre(e.target.value)}
+                aria-label="Фільтр за жанром"
                 className="px-4 py-3 bg-[#1f3a30] border border-white/20 text-white rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#E8EFE8]"
               >
                 <option value="">Усі жанри ({genres.length})</option>
@@ -130,6 +132,8 @@ export default function Catalog() {
       )}
 
       {/* Grid */}
+      {/* Прихований заголовок: між h1 банера і h3 карток має бути h2 (доступність, порядок заголовків) */}
+      <h2 className="sr-only">Книги в каталозі</h2>
       {loading ? (
         <div className="py-20 text-center text-[#69766E] font-medium">
           Завантаження бібліотечного фонду...
