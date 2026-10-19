@@ -168,8 +168,8 @@ React SPA (Cloudflare Pages) --HTTPS, JSON, JWT--> ASP.NET Core API (Cloud Run) 
 | FR-4 Додавання книг із примірниками | `POST /api/Books`, панель бібліотекаря | юніт-тести, Postman, Selenium | виконано |
 | FR-5 Видача примірника читачу | `POST /api/Loans/{id}/issue` | Postman, Selenium | виконано |
 | FR-6 Повернення книги | `POST /api/Loans/{id}/return` | Postman, Selenium | виконано |
-| FR-7 Статус доступності в каталозі | поле `availableCopiesCount` | Postman, Selenium | частково: каталог показує «В наявності: N» або «Немає», без окремих статусів «видана» і «заброньована» |
-| FR-8 Книги на руках і дедлайни в кабінеті | `GET /api/Loans/my`, сторінка `/dashboard` | Postman, Selenium | частково: дедлайни показуються, але прострочені видачі не виділяються, хоча API повертає `isOverdue` |
+| FR-7 Статус доступності в каталозі | поле `status` у `GET /api/Books` (`Available`, `Reserved`, `IssuedOut`) і кількість примірників за статусами; бейдж «В наявності: N», «Заброньована» або «Видана» | юніт-тести, Postman, Selenium | виконано |
+| FR-8 Книги на руках і дедлайни в кабінеті | `GET /api/Loans/my`, сторінка `/dashboard`; прострочені видачі (поле `isOverdue`) виділяються червоним і позначкою «Прострочено» | Postman, Selenium | виконано |
 | FR-9 Розмежування прав за ролями | `[Authorize(Roles = "Librarian")]`, маршрут `/admin` лише для бібліотекаря | Postman (401/403), Selenium | виконано |
 | FR-10 Відновлення пароля | `POST /api/Auth/forgot-password`, `POST /api/Auth/reset-password`, лист через SMTP | юніт-тести, Postman | виконано |
 | FR-11 Редагування книги | `PUT /api/Books/{id}` | Postman, Selenium | виконано |
