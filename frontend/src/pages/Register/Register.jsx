@@ -116,7 +116,7 @@ export default function Register() {
 
         <div className="mt-8 text-center text-sm text-gray-600 font-medium">
           Вже маєте акаунт?{' '}
-          <a href="/login" className="text-indigo-600 hover:text-indigo-800 hover:underline transition-colors">
+          <a href="/login" className="text-indigo-600 hover:text-indigo-800 underline transition-colors">
             Увійдіть тут
           </a>
         </div>
