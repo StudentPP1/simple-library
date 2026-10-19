@@ -16,6 +16,9 @@ FROM build AS test
 ENTRYPOINT ["dotnet", "test", "SimpleLibrary.Application.Tests", "--no-restore"]
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl \
+ && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080

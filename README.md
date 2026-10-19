@@ -104,13 +104,37 @@ docker compose up -d --build
 
 ## Тести
 
+Навантажувальні тести (k6, 200 одночасних користувачів, NFR-3 і NFR-5), скрипт великої тестової бази й результати замірів описані в [tests/load/README.md](tests/load/README.md).
+
 Юніт-тести бекенду можна запустити в Docker, без встановленого .NET SDK:
 
 ```bash
 docker compose --profile test run --rm --build tests
 ```
 
+API-тести (Postman-колекція в `tests/api/`) запускаються через Newman на піднятому `docker compose`. Код бібліотекаря має збігатися з `LIBRARIAN_INVITE_CODE` у `.env`:
+
+```bash
+npx newman run tests/api/SimpleLibrary.postman_collection.json -e tests/api/local.postman_environment.json --env-var librarianCode=<LIBRARIAN_INVITE_CODE>
+```
+
+Колекцію можна також імпортувати в Postman разом з оточенням `local.postman_environment.json`.
+
+Стан сервісу та підключення до БД: `GET http://localhost:5000/health` (`Healthy` / `Unhealthy`).
+
 CI (GitHub Actions) на кожен push і pull request у `main` збирає й тестує бекенд, а також збирає та перевіряє лінтером фронтенд.
+
+Системні E2E-тести (Selenium + pytest, `tests/e2e/`) проходять сценарії читача й бібліотекаря в реальному браузері: Chrome, Firefox або Edge. Потрібні Python 3.12+ і запущений `docker compose`. Код бібліотекаря тести беруть з `.env`.
+
+```bash
+python -m venv tests/e2e/.venv
+tests/e2e/.venv/Scripts/pip install -r tests/e2e/requirements.txt   # Linux/macOS: tests/e2e/.venv/bin/pip
+tests/e2e/.venv/Scripts/python -m pytest tests/e2e --browser chrome --html=tests/e2e/reports/report-chrome.html --self-contained-html
+```
+
+Драйвер браузера Selenium завантажує сам. Щоб бачити вікно браузера, додайте `--headed`. Каталог показує лише перші 100 книг, тому тести краще запускати на свіжій базі (`docker compose down -v`).
+
+E2E-тести також запускаються в CI окремо для Chrome, Firefox і Edge.
 
 ## Робота з Git
 
