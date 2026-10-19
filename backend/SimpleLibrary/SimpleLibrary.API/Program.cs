@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SimpleLibrary.API;
@@ -67,5 +68,20 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = (context, report) => context.Response.WriteAsJsonAsync(new
+    {
+        Status = report.Status.ToString(),
+        TotalDurationMs = report.TotalDuration.TotalMilliseconds,
+        Checks = report.Entries.Select(entry => new
+        {
+            Name = entry.Key,
+            Status = entry.Value.Status.ToString(),
+            DurationMs = entry.Value.Duration.TotalMilliseconds
+        })
+    })
+});
 
 app.Run();

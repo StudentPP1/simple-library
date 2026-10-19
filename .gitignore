@@ -10,3 +10,10 @@
 .DS_Store
 
 .env
+
+# E2E tests
+tests/e2e/.venv/
+tests/e2e/reports/
+tests/e2e/screenshots/
+.pytest_cache/
+__pycache__/
