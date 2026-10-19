@@ -62,6 +62,12 @@ namespace SimpleLibrary.Application.Services
             return ServiceResponse<BookResponse>.Ok(responseDto);
         }
 
+        public async Task<ServiceResponse<IEnumerable<string>>> GetGenresAsync()
+        {
+            var genres = await _unitOfWork.BookRepository.GetGenresAsync();
+            return ServiceResponse<IEnumerable<string>>.Ok(genres);
+        }
+
         public async Task<ServiceResponse<PagedResponse<BookResponse>>> GetCatalogAsync(int pageNumber, int pageSize, string? searchTerm, string? genre)
         {
             if (pageSize < MinPageSize || pageSize > MaxPageSize)

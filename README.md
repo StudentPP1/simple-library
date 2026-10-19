@@ -132,7 +132,7 @@ tests/e2e/.venv/Scripts/pip install -r tests/e2e/requirements.txt   # Linux/macO
 tests/e2e/.venv/Scripts/python -m pytest tests/e2e --browser chrome --html=tests/e2e/reports/report-chrome.html --self-contained-html
 ```
 
-Драйвер браузера Selenium завантажує сам. Щоб бачити вікно браузера, додайте `--headed`. Каталог показує лише перші 100 книг, тому тести краще запускати на свіжій базі (`docker compose down -v`).
+Драйвер браузера Selenium завантажує сам. Щоб бачити вікно браузера, додайте `--headed`. Панель бібліотекаря показує лише перші 100 книг, тому тести краще запускати на свіжій базі (`docker compose down -v`).
 
 E2E-тести також запускаються в CI окремо для Chrome, Firefox і Edge.
 

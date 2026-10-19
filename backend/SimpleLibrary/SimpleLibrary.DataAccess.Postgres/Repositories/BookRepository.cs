@@ -8,6 +8,7 @@ namespace SimpleLibrary.DataAccess.Postgres.Repositories
     public class BookRepository : IBookRepository
     {
         private const string IcuCollation = "und-x-icu";
+        private const string UkrainianCollation = "uk-x-icu";
 
         private readonly LibraryDbContext _context;
 
@@ -19,6 +20,17 @@ namespace SimpleLibrary.DataAccess.Postgres.Repositories
         public async Task AddAsync(Book book)
         {
             await _context.Books.AddAsync(book);
+        }
+
+        public async Task<IEnumerable<string>> GetGenresAsync()
+        {
+            return await _context.Books
+                .AsNoTracking()
+                .Where(b => b.Genre != "")
+                .Select(b => b.Genre)
+                .Distinct()
+                .OrderBy(g => EF.Functions.Collate(g, UkrainianCollation)) // за українською абеткою
+                .ToListAsync();
         }
 
         public async Task<Book?> GetByIdAsync(Guid id)

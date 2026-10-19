@@ -1,40 +1,103 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import api from '../../services/api';
+
+// Каталог вантажиться сторінками: спочатку PAGE_SIZE книг, наступні — коли користувач догортає до кінця.
+// Пошук і фільтр виконує сервер, тому знаходяться всі книги, а не лише завантажені.
+const PAGE_SIZE = 20;
 
 export default function Catalog() {
   const [books, setBooks] = useState([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedGenre, setSelectedGenre] = useState('');
   const [genres, setGenres] = useState([]);
   const [reservingId, setReservingId] = useState(null);
   const [selectedBookForDetails, setSelectedBookForDetails] = useState(null);
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  const fetchBooks = async () => {
-    setLoading(true);
-    try {
-      const response = await api.get('/Books?pageSize=100');
-      const items = response.data?.data?.items || response.data?.data || [];
-      setBooks(items);
-
-      const uniqueGenres = [...new Set(items.map((b) => b.genre).filter(Boolean))];
-      setGenres(uniqueGenres);
-    } catch (err) {
-      console.error('Помилка завантаження каталогу:', err);
-      showMessage('error', 'Не вдалося завантажити каталог книг.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchBooks();
-  }, []);
-
   const showMessage = (type, text) => {
     setMessage({ type, text });
     setTimeout(() => setMessage({ type: '', text: '' }), 4000);
+  };
+
+  const requestId = useRef(0);
+  const sentinelRef = useRef(null);
+
+  // Запит сторінки каталогу; стан оновлюється лише після відповіді (і лише для актуального запиту)
+  const loadPage = useCallback((pageNumber) => {
+    const id = ++requestId.current;
+    const params = new URLSearchParams({ pageNumber, pageSize: PAGE_SIZE });
+    if (debouncedSearch) params.set('search', debouncedSearch);
+    if (selectedGenre) params.set('genre', selectedGenre);
+
+    return api.get(`/Books?${params}`)
+      .then((response) => {
+        if (id !== requestId.current) return; // відповідь на застарілий запит (пошук уже змінився)
+        const data = response.data?.data;
+        const items = data?.items || [];
+        setBooks((prev) => {
+          if (pageNumber === 1) return items;
+          const known = new Set(prev.map((b) => b.id));
+          return [...prev, ...items.filter((b) => !known.has(b.id))];
+        });
+        setPage(pageNumber);
+        setHasMore(pageNumber < (data?.totalPages || 0));
+      })
+      .catch((err) => {
+        if (id !== requestId.current) return;
+        console.error('Помилка завантаження каталогу:', err);
+        showMessage('error', 'Не вдалося завантажити каталог книг.');
+      })
+      .finally(() => {
+        if (id !== requestId.current) return;
+        setLoading(false);
+        setLoadingMore(false);
+      });
+  }, [debouncedSearch, selectedGenre]);
+
+  // Жанри — окремим запитом: зі сторінки на 20 книг повний список не зібрати
+  useEffect(() => {
+    api.get('/Books/genres')
+      .then((response) => setGenres(response.data?.data || []))
+      .catch((err) => console.error('Помилка завантаження жанрів:', err));
+  }, []);
+
+  // Пошук запускаємо, коли користувач перестав друкувати
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    loadPage(1);
+  }, [loadPage]);
+
+  // Нескінченна прокрутка: коли низ списку з'являється на екрані — вантажимо наступну сторінку
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel || !hasMore || loading || loadingMore) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        setLoadingMore(true);
+        loadPage(page + 1);
+      }
+    }, { rootMargin: '300px' });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loading, loadingMore, page, loadPage]);
+
+  const refreshBook = async (bookId) => {
+    try {
+      const response = await api.get(`/Books/${bookId}`);
+      const updated = response.data?.data;
+      if (updated) setBooks((prev) => prev.map((b) => (b.id === bookId ? updated : b)));
+    } catch (err) {
+      console.error('Помилка оновлення книги:', err);
+    }
   };
 
   const handleReserve = async (bookId) => {
@@ -48,7 +111,7 @@ export default function Catalog() {
     try {
       await api.post('/Loans/reserve', { bookId });
       showMessage('success', 'Книгу успішно заброньовано! Вона чекає на вас у кабінеті.');
-      fetchBooks();
+      refreshBook(bookId);
       if (selectedBookForDetails?.id === bookId) {
         setSelectedBookForDetails(null);
       }
@@ -58,14 +121,6 @@ export default function Catalog() {
       setReservingId(null);
     }
   };
-
-  const filteredBooks = books.filter((book) => {
-    const matchesSearch =
-      book.title?.toLowerCase().includes(search.toLowerCase()) ||
-      book.author?.toLowerCase().includes(search.toLowerCase());
-    const matchesGenre = selectedGenre ? book.genre === selectedGenre : true;
-    return matchesSearch && matchesGenre;
-  });
 
   return (
     <div className="space-y-8">
@@ -138,7 +193,7 @@ export default function Catalog() {
         <div className="py-20 text-center text-[#69766E] font-medium">
           Завантаження бібліотечного фонду...
         </div>
-      ) : filteredBooks.length === 0 ? (
+      ) : books.length === 0 ? (
         <div className="bg-white rounded-3xl p-12 text-center border border-[#E5E7E3] shadow-sm space-y-3">
           <span className="text-4xl">📚</span>
           <h3 className="text-lg font-extrabold text-[#25312B]">За вашим запитом нічого не знайдено</h3>
@@ -146,7 +201,7 @@ export default function Catalog() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredBooks.map((book) => {
+          {books.map((book) => {
             const availableCount = book.availableCopiesCount ?? book.copiesCount ?? 1;
             const isAvailable = availableCount > 0;
 
@@ -222,6 +277,12 @@ export default function Catalog() {
             );
           })}
         </div>
+      )}
+
+      {/* Маячок нескінченної прокрутки: коли він видимий, вантажиться наступна сторінка */}
+      {!loading && hasMore && <div ref={sentinelRef} data-testid="catalog-sentinel" className="h-1" />}
+      {loadingMore && (
+        <div className="py-6 text-center text-sm text-[#69766E] font-medium">Завантаження ще книг...</div>
       )}
 
       {/* МОДАЛЬНЕ ВІКНО ДЕТАЛЕЙ */}
