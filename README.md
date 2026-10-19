@@ -102,6 +102,99 @@ docker compose up -d --build
 Зупинити: `docker compose down`. 
 Видалити разом із даними БД: `docker compose down -v`.
 
+## Інтеграція компонентів
+
+Система складається з трьох компонентів, які взаємодіють через REST API:
+
+```
+React SPA (Cloudflare Pages) --HTTPS, JSON, JWT--> ASP.NET Core API (Cloud Run) --EF Core--> PostgreSQL (Neon)
+```
+
+- Фронтенд звертається до API лише через Axios-клієнт `frontend/src/services/api.js`. Адресу API задає змінна `VITE_API_URL` під час збірки, JWT-токен додається до кожного запиту.
+- API дозволяє запити лише з адрес зі змінної `CORS_ALLOWED_ORIGINS`.
+- Бекенд працює з базою через EF Core, міграції застосовуються автоматично під час старту.
+- Ендпоінт `/health` перевіряє, що бекенд працює і має з'єднання з базою даних.
+
+Інтеграцію виконано двома способами:
+
+| Середовище | Як запускається | Для чого |
+|---|---|---|
+| Локально | `docker compose up` (розділ [Запуск](#запуск)) | розробка, E2E- та навантажувальні тести |
+| Хмара | GitHub Actions, Google Cloud Run, Cloudflare Pages, Neon (розділ [Розгортання](#розгортання)) | робоча версія для користувачів |
+
+У Docker Compose порядок старту задано перевірками стану: бекенд стартує, коли база даних відповідає на `pg_isready`, а фронтенд - коли бекенд відповідає на `/health`.
+
+## Розгортання
+
+| Компонент | Адреса |
+|---|---|
+| Сайт | https://simple-library-eja.pages.dev |
+| API (Swagger) | https://simple-library-api-39623256372.europe-west1.run.app/swagger/index.html |
+| Стан сервера | https://simple-library-api-39623256372.europe-west1.run.app/health |
+
+Розгортання автоматичне:
+
+1. На кожен pull request і push у `main` CI ([ci.yml](.github/workflows/ci.yml)) запускає 6 перевірок: збірку й юніт-тести бекенду, збірку та лінтер фронтенду, API-тести (Newman) і E2E-тести в Chrome, Firefox та Edge.
+2. Після злиття в `main` бекенд деплоїться в Google Cloud Run ([deploy-backend.yml](.github/workflows/deploy-backend.yml)): спочатку юніт-тести, потім збірка образу й деплой.
+3. Фронтенд збирає та публікує Cloudflare Pages з гілки `main`.
+4. База даних - PostgreSQL на Neon, схема оновлюється міграціями під час старту бекенду.
+
+Доступність сайту та API відстежує UptimeRobot.
+
+Реєстрація бібліотекаря потребує інвайт-коду (`LIBRARIAN_INVITE_CODE`). Код не публікується в репозиторії, його видає тимлід.
+
+## Управління залежностями
+
+| Компонент | Файл | Як зафіксовано |
+|---|---|---|
+| Бекенд | `backend/SimpleLibrary/*/*.csproj` | точні версії NuGet-пакетів; усі пакети EF Core і ASP.NET Core з лінійки 8.0 |
+| Фронтенд | `frontend/package.json`, `frontend/package-lock.json` | lock-файл фіксує точні версії, збірка в Docker виконує `npm ci` |
+| E2E-тести | `tests/e2e/requirements.txt` | точні версії (`selenium==4.50.0`, `pytest==8.3.4`, `pytest-html==4.1.1`) |
+| Середовища | `Dockerfile`, `.github/workflows/*.yml` | .NET 8, Node.js 20/22, Python 3.12, PostgreSQL 16 |
+
+Конфігурація (паролі, ключі, адреси) не зберігається в коді: локально вона в `.env` (шаблон `.env.example`), у хмарі - у змінних середовища Cloud Run і Cloudflare Pages.
+
+## Виконання вимог
+
+Номери вимог відповідають специфікації з лабораторної роботи №1.
+
+### Функціональні вимоги
+
+| Вимога | Де реалізовано | Чим перевірено | Стан |
+|---|---|---|---|
+| FR-1 Реєстрація | `POST /api/Auth/register`, сторінка `/register` | юніт-тести, Postman, Selenium | виконано |
+| FR-2 Вхід і вихід, JWT | `POST /api/Auth/login`, сторінка `/login` | юніт-тести, Postman, Selenium | виконано |
+| FR-3 Каталог з посторінковим виведенням, сторінка книги | `GET /api/Books`, `GET /api/Books/{id}`, каталог з нескінченною прокруткою і вікном деталей книги | Postman, Selenium | виконано |
+| FR-4 Додавання книг із примірниками | `POST /api/Books`, панель бібліотекаря | юніт-тести, Postman, Selenium | виконано |
+| FR-5 Видача примірника читачу | `POST /api/Loans/{id}/issue` | Postman, Selenium | виконано |
+| FR-6 Повернення книги | `POST /api/Loans/{id}/return` | Postman, Selenium | виконано |
+| FR-7 Статус доступності в каталозі | поле `status` у `GET /api/Books` (`Available`, `Reserved`, `IssuedOut`) і кількість примірників за статусами; бейдж «В наявності: N», «Заброньована» або «Видана» | юніт-тести, Postman, Selenium | виконано |
+| FR-8 Книги на руках і дедлайни в кабінеті | `GET /api/Loans/my`, сторінка `/dashboard`; прострочені видачі (поле `isOverdue`) виділяються червоним і позначкою «Прострочено» | Postman, Selenium | виконано |
+| FR-9 Розмежування прав за ролями | `[Authorize(Roles = "Librarian")]`, маршрут `/admin` лише для бібліотекаря | Postman (401/403), Selenium | виконано |
+| FR-10 Відновлення пароля | `POST /api/Auth/forgot-password`, `POST /api/Auth/reset-password`, лист через SMTP | юніт-тести, Postman | виконано |
+| FR-11 Редагування книги | `PUT /api/Books/{id}` | Postman, Selenium | виконано |
+| FR-12 Пошук і фільтр за жанром | параметри `search` і `genre` у `GET /api/Books`, `GET /api/Books/genres` | Postman, Selenium | виконано |
+| FR-13 Бронювання | `POST /api/Loans/reserve`, `POST /api/Loans/{id}/cancel`, автоматичне скасування прострочених бронювань | юніт-тести, Postman, Selenium | виконано |
+| FR-14 Активні видачі та боржники | `GET /api/Loans/active`, вікно «Боржники» в панелі бібліотекаря | Postman | виконано |
+| FR-15 Інтерфейс для читача та бібліотекаря | React SPA: каталог, кабінет, панель бібліотекаря | Selenium | виконано |
+| FR-16 Видалення книги | `DELETE /api/Books/{id}` з підтвердженням; книгу, примірник якої виданий, видалити не можна | юніт-тести, Postman | виконано |
+| FR-17 Історія читань | `GET /api/Loans/my`, вкладка «Історія» в кабінеті читача | Postman | виконано |
+
+### Нефункціональні вимоги
+
+| Вимога | Як забезпечено | Результат перевірки |
+|---|---|---|
+| NFR-1 Шифрування даних | паролі хешуються BCrypt, доступ за JWT, HTTPS у хмарі | перевірено Postman і кодом |
+| NFR-2 Авторизація та контроль доступу | JWT і ролі Reader / Librarian | Postman: без токена 401, без ролі 403 |
+| NFR-3 200+ одночасних користувачів | індекси бази даних для пошуку та видач | k6, 200 користувачів, база на 50 тис. книг: 0 % помилок |
+| NFR-4 Доступність 99 % | Cloud Run, Cloudflare Pages, Neon; `/health` | моніторинг UptimeRobot |
+| NFR-5 Відповідь до 1 с | серверна пагінація, індекси | k6: 95 % запитів пошуку за 0,054 с, бронювання за 0,062 с |
+| NFR-6 Chrome, Edge, Firefox 140+ | React і Tailwind CSS без API, специфічних для одного браузера | E2E-тести в усіх трьох браузерах у CI |
+| NFR-7 Різні розміри екранів | адаптивна верстка, бургер-меню на телефоні | Selenium, Lighthouse |
+| NFR-8 Завантаження до 2 с | ліниве завантаження сторінок, кешування статичних файлів | Lighthouse: 0,4-0,5 с на комп'ютері, до 1,8 с на телефоні з повільним 4G |
+
+Детальні результати тестування описані у звіті до лабораторної роботи №6 і в [tests/load/README.md](tests/load/README.md), [tests/lighthouse/README.md](tests/lighthouse/README.md).
+
 ## Тести
 
 Навантажувальні тести (k6, 200 одночасних користувачів, NFR-3 і NFR-5), скрипт великої тестової бази й результати замірів описані в [tests/load/README.md](tests/load/README.md).
@@ -122,7 +215,7 @@ npx newman run tests/api/SimpleLibrary.postman_collection.json -e tests/api/loca
 
 Стан сервісу та підключення до БД: `GET http://localhost:5000/health` (`Healthy` / `Unhealthy`).
 
-CI (GitHub Actions) на кожен push і pull request у `main` збирає й тестує бекенд, а також збирає та перевіряє лінтером фронтенд.
+CI (GitHub Actions) на кожен push і pull request у `main` запускає всі ці тести, докладніше в розділі [Розгортання](#розгортання).
 
 Системні E2E-тести (Selenium + pytest, `tests/e2e/`) проходять сценарії читача й бібліотекаря в реальному браузері: Chrome, Firefox або Edge. Потрібні Python 3.12+ і запущений `docker compose`. Код бібліотекаря тести беруть з `.env`.
 
@@ -142,10 +235,3 @@ E2E-тести також запускаються в CI окремо для Chr
 - Кожна задача ведеться в окремій гілці: `feature/<назва>`, `test/<назва>`, `fix/<назва>`.
 - Зміни потрапляють у `main` лише через pull request після код-рев'ю та успішного CI.
 - Повідомлення комітів пишемо за [Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix:`, `test:`, `docs:`.
-
-## Посилання та деплой
-+ реєстрація [читатача](https://simple-library-eja.pages.dev/register)
-+ реєстрація [бібліотекаря](https://simple-library-eja.pages.dev/register?secret_key=8bHoiGdP4SMPTAHEQuOZDYRyIm0UE4cs)
-+ [swagger](https://simple-library-api-39623256372.europe-west1.run.app/swagger/index.html)
-
-Пострес база на Neon, front автоматично підтягується з main, backend через github a
