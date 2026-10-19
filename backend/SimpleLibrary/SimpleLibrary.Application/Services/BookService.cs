@@ -43,7 +43,7 @@ namespace SimpleLibrary.Application.Services
             await _unitOfWork.BookRepository.AddAsync(book);
             await _unitOfWork.SaveChangesAsync();
 
-            var responseDto = MapToResponse(book, book.Copies.Count(c => c.Status == CopyStatus.Available));
+            var responseDto = MapToResponse(book, BookCopyCounts.From(book.Copies));
             return ServiceResponse<BookResponse>.Ok(responseDto, "Книга та примірники успішно додані.");
         }
 
@@ -56,8 +56,7 @@ namespace SimpleLibrary.Application.Services
                 return ServiceResponse<BookResponse>.Fail("Книгу не знайдено.", ErrorType.NotFound);
             }
 
-            int availableCopies = book.Copies.Count(c => c.Status == CopyStatus.Available);
-            var responseDto = MapToResponse(book, availableCopies);
+            var responseDto = MapToResponse(book, BookCopyCounts.From(book.Copies));
 
             return ServiceResponse<BookResponse>.Ok(responseDto);
         }
@@ -88,7 +87,7 @@ namespace SimpleLibrary.Application.Services
             var (items, totalCount) = await _unitOfWork.BookRepository.GetPagedAsync(pageNumber, pageSize, searchTerm, genre);
 
             var responseItems = items
-                .Select(item => MapToResponse(item.Book, item.AvailableCopiesCount))
+                .Select(item => MapToResponse(item.Book, item.Copies))
                 .ToList();
 
             var pagedResponse = new PagedResponse<BookResponse>
@@ -123,8 +122,7 @@ namespace SimpleLibrary.Application.Services
 
             await _unitOfWork.SaveChangesAsync();
 
-            int availableCopies = book.Copies.Count(c => c.Status == CopyStatus.Available);
-            return ServiceResponse<BookResponse>.Ok(MapToResponse(book, availableCopies), "Книгу успішно оновлено.");
+            return ServiceResponse<BookResponse>.Ok(MapToResponse(book, BookCopyCounts.From(book.Copies)), "Книгу успішно оновлено.");
         }
 
         public async Task<ServiceResponse<bool>> DeleteBookAsync(Guid id)
@@ -157,7 +155,7 @@ namespace SimpleLibrary.Application.Services
             }
         }
 
-        private static BookResponse MapToResponse(Book book, int availableCopiesCount)
+        private static BookResponse MapToResponse(Book book, BookCopyCounts copies)
         {
             return new BookResponse
             {
@@ -168,7 +166,10 @@ namespace SimpleLibrary.Application.Services
                 ISBN = book.ISBN,
                 PublicationYear = book.PublicationYear,
                 Description = book.Description,
-                AvailableCopiesCount = availableCopiesCount
+                AvailableCopiesCount = copies.Available,
+                ReservedCopiesCount = copies.Reserved,
+                IssuedCopiesCount = copies.IssuedOut,
+                Status = copies.Availability.ToString()
             };
         }
     }

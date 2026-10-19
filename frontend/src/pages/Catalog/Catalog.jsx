@@ -5,6 +5,22 @@ import api from '../../services/api';
 // Пошук і фільтр виконує сервер, тому знаходяться всі книги, а не лише завантажені.
 const PAGE_SIZE = 20;
 
+// Статус книги в каталозі (FR-7): в наявності, заброньована або видана.
+// Статус рахує бекенд за станом примірників (поле status).
+const getAvailability = (book) => {
+  const available = book.availableCopiesCount ?? 0;
+  if (available > 0) {
+    return { badge: `В наявності: ${available}`, color: 'bg-[#E8EFE8] text-[#294E40] border-[#294E40]/20' };
+  }
+  if (book.status === 'Reserved') {
+    return { badge: 'Заброньована', color: 'bg-amber-50 text-amber-800 border-amber-200', button: 'Усі примірники заброньовано' };
+  }
+  if (book.status === 'IssuedOut') {
+    return { badge: 'Видана', color: 'bg-rose-50 text-rose-700 border-rose-200', button: 'Усі примірники видано' };
+  }
+  return { badge: 'Немає', color: 'bg-rose-50 text-rose-700 border-rose-200', button: 'Немає примірників' };
+};
+
 export default function Catalog() {
   const [books, setBooks] = useState([]);
   const [page, setPage] = useState(1);
@@ -202,8 +218,8 @@ export default function Catalog() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {books.map((book) => {
-            const availableCount = book.availableCopiesCount ?? book.copiesCount ?? 1;
-            const isAvailable = availableCount > 0;
+            const availability = getAvailability(book);
+            const isAvailable = (book.availableCopiesCount ?? 0) > 0;
 
             return (
               <div
@@ -219,13 +235,9 @@ export default function Catalog() {
 
                     <div className="flex items-center gap-1.5 shrink-0">
                       <span
-                        className={`px-2.5 py-1 rounded-full text-[11px] font-extrabold border ${
-                          isAvailable
-                            ? 'bg-[#E8EFE8] text-[#294E40] border-[#294E40]/20'
-                            : 'bg-rose-50 text-rose-700 border-rose-200'
-                        }`}
+                        className={`px-2.5 py-1 rounded-full text-[11px] font-extrabold border ${availability.color}`}
                       >
-                        {isAvailable ? `В наявності: ${availableCount}` : 'Немає'}
+                        {availability.badge}
                       </span>
 
                       {/* КНОПКА ТРИ КРАПКИ */}
@@ -269,7 +281,7 @@ export default function Catalog() {
                         <span>Забронювати книгу</span>
                       </>
                     ) : (
-                      'Усі примірники видано'
+                      availability.button
                     )}
                   </button>
                 </div>
@@ -339,7 +351,7 @@ export default function Catalog() {
               <button
                 onClick={() => handleReserve(selectedBookForDetails.id)}
                 disabled={
-                  (selectedBookForDetails.availableCopiesCount ?? selectedBookForDetails.copiesCount ?? 1) <= 0 ||
+                  (selectedBookForDetails.availableCopiesCount ?? 0) <= 0 ||
                   reservingId === selectedBookForDetails.id
                 }
                 className="flex-1 py-3 bg-[#294E40] hover:bg-[#1f3a30] disabled:bg-[#E5E7E3] disabled:text-[#69766E] text-white font-bold rounded-xl text-xs transition shadow-sm"
