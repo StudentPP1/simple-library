@@ -29,6 +29,41 @@ jobs:
     - name: Test
       run: dotnet test --no-build --verbosity normal
 
+  api-tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Create .env for CI
+      run: |
+        cp .env.example .env
+        sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$(openssl rand -hex 12)|" .env
+        sed -i "s|^JWT_SECRET_KEY=.*|JWT_SECRET_KEY=$(openssl rand -hex 32)|" .env
+        echo "LIBRARIAN_CODE=$(openssl rand -hex 8)" >> "$GITHUB_ENV"
+
+    - name: Start database and backend
+      run: |
+        sed -i "s|^LIBRARIAN_INVITE_CODE=.*|LIBRARIAN_INVITE_CODE=${LIBRARIAN_CODE}|" .env
+        docker compose up -d --build --wait db backend
+
+    - name: Run Postman collection
+      run: |
+        npx --yes newman@6 run tests/api/SimpleLibrary.postman_collection.json \
+          -e tests/api/local.postman_environment.json \
+          --env-var librarianCode=${LIBRARIAN_CODE} \
+          --reporters cli,junit --reporter-junit-export newman-report.xml
+
+    - name: Upload Newman report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: newman-report
+        path: newman-report.xml
+
+    - name: Backend logs on failure
+      if: failure()
+      run: docker compose logs backend
+
   build-and-test-frontend:
     runs-on: ubuntu-latest
     defaults:
