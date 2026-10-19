@@ -8,6 +8,7 @@ namespace SimpleLibrary.Core.Interfaces.Repositories
         Task<BookCopy?> GetAvailableCopyAsync(Guid bookId);
         Task<(IEnumerable<(Book Book, int AvailableCopiesCount)> Items, int TotalCount)> GetPagedAsync(
             int pageNumber, int pageSize, string? searchTerm, string? genre);
+        Task<IEnumerable<string>> GetGenresAsync();
         Task AddAsync(Book book);
         void Delete(Book book);
     }

@@ -980,6 +980,45 @@
           ]
         },
         {
+          "name": "Список жанрів (для фільтра каталогу)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/books/genres",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "books",
+                "genres"
+              ]
+            },
+            "description": "Каталог вантажиться сторінками, тому повний список жанрів дає окремий ендпоінт."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "{",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const genres = pm.response.json().data;",
+                  "pm.test(\"Список жанрів — масив рядків без порожніх\", () => {",
+                  "    pm.expect(genres).to.be.an(\"array\").that.is.not.empty;",
+                  "    genres.forEach(g => pm.expect(g).to.be.a(\"string\").and.not.empty);",
+                  "});",
+                  "pm.test(\"Містить жанр створеної книги\", () => pm.expect(genres).to.include(\"Тестування\"));",
+                  "pm.test(\"Без дублікатів\", () => pm.expect(new Set(genres).size).to.eql(genres.length));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Книга за ID",
           "request": {
             "method": "GET",

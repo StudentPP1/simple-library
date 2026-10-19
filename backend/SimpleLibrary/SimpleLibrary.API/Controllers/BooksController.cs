@@ -43,6 +43,25 @@ namespace SimpleLibrary.API.Controllers
         }
 
         /// <summary>
+        /// Список усіх жанрів у каталозі (для фільтра; каталог вантажиться сторінками, тому жанри не можна зібрати на клієнті).
+        /// Доступно всім користувачам.
+        /// </summary>
+        [HttpGet("genres")]
+        public async Task<IActionResult> GetGenres()
+        {
+            try
+            {
+                var response = await _bookService.GetGenresAsync();
+                return Ok(new ApiResponse<IEnumerable<string>>(true, response.Message, response.Data));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Помилка під час отримання списку жанрів.");
+                return StatusCode(500, new ApiResponse<object>(false, "Внутрішня помилка сервера. Спробуйте пізніше.", null));
+            }
+        }
+
+        /// <summary>
         /// Отримання детальної інформації про книгу.
         /// Доступно всім користувачам.
         /// </summary>

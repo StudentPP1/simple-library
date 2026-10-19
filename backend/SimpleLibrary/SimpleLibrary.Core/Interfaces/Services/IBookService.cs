@@ -9,6 +9,7 @@ namespace SimpleLibrary.Core.Interfaces.Services
         Task<ServiceResponse<BookResponse>> AddBookAsync(CreateBookRequest request);
         Task<ServiceResponse<BookResponse>> GetBookByIdAsync(Guid id);
         Task<ServiceResponse<PagedResponse<BookResponse>>> GetCatalogAsync(int pageNumber, int pageSize, string? searchTerm, string? genre);
+        Task<ServiceResponse<IEnumerable<string>>> GetGenresAsync();
         Task<ServiceResponse<BookResponse>> UpdateBookAsync(Guid id, UpdateBookRequest request);
         Task<ServiceResponse<bool>> DeleteBookAsync(Guid id);
     }

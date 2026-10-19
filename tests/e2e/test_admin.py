@@ -13,8 +13,7 @@ def test_librarian_adds_book(ui, librarian, unique):
     ui.button("Додати у фонд").click()
 
     ui.row(title)
-    ui.open("/catalog")
-    ui.card(title)
+    ui.find_book(title)
 
 
 def test_librarian_edits_book(ui, librarian, book):

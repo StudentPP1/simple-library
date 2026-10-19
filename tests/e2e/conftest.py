@@ -227,6 +227,12 @@ class Ui:
     def text_visible(self, text):
         return self.el(By.XPATH, f"//*[contains(normalize-space(text()), {xpath_literal(text)})]")
 
+    def find_book(self, title):
+        """Знаходить книгу в каталозі через пошук (каталог вантажиться сторінками по 20 книг)."""
+        self.open("/catalog")
+        self.type_into(self.by_placeholder("Пошук за назвою або автором..."), title)
+        return self.card(title)
+
     def card(self, title):
         """Картка книги в каталозі за назвою."""
         return self.el(By.XPATH, f"//h3[normalize-space(.)={xpath_literal(title)}]/ancestor::div[contains(@class,'rounded-2xl')][1]")

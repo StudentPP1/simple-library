@@ -4,15 +4,14 @@ from selenium.webdriver.support import expected_conditions as EC
 
 
 def test_guest_cannot_reserve(ui, book):
-    ui.open("/catalog")
-    ui.card(book["title"]).find_element(By.XPATH, ".//button[contains(., 'Забронювати книгу')]").click()
+    ui.find_book(book["title"]).find_element(By.XPATH, ".//button[contains(., 'Забронювати книгу')]").click()
 
     ui.text_visible("Будь ласка, увійдіть в акаунт")
 
 
 def test_reader_reserves_book_and_sees_it_in_dashboard(ui, reader, book):
     ui.login_with_token(reader["token"], "/catalog")
-    card = ui.card(book["title"])
+    card = ui.find_book(book["title"])
     assert "В наявності: 2" in card.text
 
     card.find_element(By.XPATH, ".//button[contains(., 'Забронювати книгу')]").click()
