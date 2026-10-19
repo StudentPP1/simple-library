@@ -99,6 +99,26 @@ namespace SimpleLibrary.Application.Tests.Services
             _mockUow.Verify(u => u.SaveChangesAsync(), Times.Never);
         }
 
+        [Theory]
+        [InlineData(new[] { CopyStatus.Available, CopyStatus.IssuedOut }, "Available")]
+        [InlineData(new[] { CopyStatus.Reserved, CopyStatus.IssuedOut }, "Reserved")]
+        [InlineData(new[] { CopyStatus.IssuedOut, CopyStatus.IssuedOut }, "IssuedOut")]
+        [InlineData(new[] { CopyStatus.Lost }, "Unavailable")]
+        public async Task GetBookByIdAsync_ReturnsAvailabilityStatusByCopies(CopyStatus[] copyStatuses, string expectedStatus)
+        {
+            var book = CreateBookWithCopies(copyStatuses);
+            _mockBookRepository.Setup(r => r.GetByIdAsync(book.Id)).ReturnsAsync(book);
+
+            var result = await _bookService.GetBookByIdAsync(book.Id);
+
+            Assert.True(result.Success);
+            Assert.NotNull(result.Data);
+            Assert.Equal(expectedStatus, result.Data.Status);
+            Assert.Equal(copyStatuses.Count(s => s == CopyStatus.Available), result.Data.AvailableCopiesCount);
+            Assert.Equal(copyStatuses.Count(s => s == CopyStatus.Reserved), result.Data.ReservedCopiesCount);
+            Assert.Equal(copyStatuses.Count(s => s == CopyStatus.IssuedOut), result.Data.IssuedCopiesCount);
+        }
+
         private void AssertValidationFailureWithoutSaving(bool success, ErrorType error)
         {
             Assert.False(success);

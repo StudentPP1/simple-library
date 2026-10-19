@@ -11,5 +11,12 @@
         public int PublicationYear { get; init; }
 
         public int AvailableCopiesCount { get; init; }
+        public int ReservedCopiesCount { get; init; }
+        public int IssuedCopiesCount { get; init; }
+
+        /// <summary>
+        /// Статус для каталогу: Available, Reserved, IssuedOut або Unavailable (FR-7).
+        /// </summary>
+        public string Status { get; init; } = string.Empty;
     }
 }

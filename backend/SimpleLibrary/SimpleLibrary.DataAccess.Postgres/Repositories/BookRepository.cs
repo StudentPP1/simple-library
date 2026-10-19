@@ -46,7 +46,7 @@ namespace SimpleLibrary.DataAccess.Postgres.Repositories
                 .FirstOrDefaultAsync(c => c.BookId == bookId && c.Status == CopyStatus.Available);
         }
 
-        public async Task<(IEnumerable<(Book Book, int AvailableCopiesCount)> Items, int TotalCount)> GetPagedAsync(
+        public async Task<(IEnumerable<(Book Book, BookCopyCounts Copies)> Items, int TotalCount)> GetPagedAsync(
             int pageNumber, int pageSize, string? searchTerm, string? genre)
         {
             var query = _context.Books.AsNoTracking().AsQueryable();
@@ -74,11 +74,13 @@ namespace SimpleLibrary.DataAccess.Postgres.Repositories
                 .Select(b => new
                 {
                     Book = b,
-                    AvailableCopiesCount = b.Copies.Count(c => c.Status == CopyStatus.Available)
+                    Available = b.Copies.Count(c => c.Status == CopyStatus.Available),
+                    Reserved = b.Copies.Count(c => c.Status == CopyStatus.Reserved),
+                    IssuedOut = b.Copies.Count(c => c.Status == CopyStatus.IssuedOut)
                 })
                 .ToListAsync();
 
-            var items = rows.Select(r => (r.Book, r.AvailableCopiesCount)).ToList();
+            var items = rows.Select(r => (r.Book, new BookCopyCounts(r.Available, r.Reserved, r.IssuedOut))).ToList();
 
             return (items, totalCount);
         }

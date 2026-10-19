@@ -121,11 +121,15 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {currentLoans.map((loan) => {
                 const pending = isPending(loan.status);
+                // Прострочену видачу виділяємо червоним (FR-8); isOverdue рахує бекенд
+                const overdue = !pending && loan.isOverdue;
 
                 return (
                   <div
                     key={loan.id}
-                    className="bg-white p-6 rounded-2xl border border-[#E5E7E3] shadow-sm space-y-4 flex flex-col justify-between"
+                    className={`bg-white p-6 rounded-2xl border shadow-sm space-y-4 flex flex-col justify-between ${
+                      overdue ? 'border-rose-300 ring-1 ring-rose-200' : 'border-[#E5E7E3]'
+                    }`}
                   >
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
@@ -133,13 +137,15 @@ export default function Dashboard() {
                           className={`px-3 py-1 rounded-full text-xs font-extrabold border ${
                             pending
                               ? 'bg-[#E8EFE8] text-[#294E40] border-[#294E40]/20'
-                              : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                              : overdue
+                                ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                : 'bg-emerald-50 text-emerald-800 border-emerald-200'
                           }`}
                         >
-                          {pending ? '📌 Заброньовано' : '📖 Видано на руки'}
+                          {pending ? '📌 Заброньовано' : overdue ? '⚠️ Прострочено' : '📖 Видано на руки'}
                         </span>
 
-                        <span className="text-xs text-[#69766E] font-medium">
+                        <span className={`text-xs font-medium ${overdue ? 'text-rose-700 font-bold' : 'text-[#69766E]'}`}>
                           Дедлайн: {loan.dueDate ? new Date(loan.dueDate).toLocaleDateString('uk-UA') : 'Очікує видачі'}
                         </span>
                       </div>
