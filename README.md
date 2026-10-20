@@ -23,8 +23,9 @@
 | Backend | .NET 8, ASP.NET Core Web API, Entity Framework Core 8, JWT, BCrypt, Swagger |
 | База даних | PostgreSQL 16 |
 | Frontend | React 19, Vite, React Router, Axios, Tailwind CSS |
-| Тести | xUnit, Moq |
+| Тести | xUnit, Moq, coverlet (юніт-тести та покриття), Postman / Newman (API), Selenium, pytest (E2E), k6 (навантаження), Lighthouse (швидкість сторінок) |
 | Інфраструктура | Docker, Docker Compose, GitHub Actions |
+| Хмара та моніторинг | Google Cloud Run (бекенд), Cloudflare Pages (фронтенд), Neon (PostgreSQL), UptimeRobot |
 
 ## Структура проєкту
 
