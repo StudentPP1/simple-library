@@ -17,7 +17,6 @@ const getAuthData = () => {
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
 
-    // ПЕРЕВІРКА ТЕРМІНУ ДІЇ ТОКЕНА
     if (payload.exp && payload.exp * 1000 < Date.now()) {
       console.warn('Термін дії токена закінчився. Виконуємо автоматичний вихід.');
       localStorage.removeItem('token');
@@ -57,13 +56,10 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      {/* Warm White background */}
       <div className="min-h-screen bg-[#FAF9F6] font-sans text-[#25312B] flex flex-col selection:bg-[#E8EFE8] selection:text-[#294E40]">
-        {/* Header with Soft Border */}
         <header className="bg-white/90 backdrop-blur-md border-b border-[#E5E7E3] sticky top-0 z-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex justify-between items-center">
 
-            {/* Logo in Forest Green */}
             <Link to="/catalog" onClick={closeMenu} className="flex items-center gap-3 group">
               <div className="w-10 h-10 bg-[#294E40] rounded-xl flex items-center justify-center text-xl text-white shadow-sm group-hover:scale-105 transition duration-200">
                 📚
@@ -78,7 +74,6 @@ export default function App() {
               </div>
             </Link>
 
-            {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-2 text-sm font-semibold">
               <Link
                 to="/catalog"
@@ -126,7 +121,6 @@ export default function App() {
               )}
             </nav>
 
-            {/* Mobile Menu Toggle */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label={mobileMenuOpen ? 'Закрити меню' : 'Відкрити меню'}
@@ -143,7 +137,6 @@ export default function App() {
             </button>
           </div>
 
-          {/* Mobile Menu */}
           {mobileMenuOpen && (
             <div className="md:hidden bg-white border-b border-[#E5E7E3] px-4 pt-2 pb-4 space-y-2 shadow-lg">
               <Link
@@ -194,7 +187,6 @@ export default function App() {
           )}
         </header>
 
-        {/* Main Workspace */}
         <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
           <Suspense fallback={<div className="py-20 text-center text-[#69766E] font-medium">Завантаження...</div>}>
           <Routes>

@@ -17,11 +17,6 @@ namespace SimpleLibrary.API.Controllers
             _context = context;
         }
 
-        /// <summary>
-        /// Перевіряє успішність підключення до бази даних PostgreSQL.
-        /// </summary>
-        /// <response code="200">Якщо підключення до БД встановлено успішно.</response>
-        /// <response code="500">Якщо виникла помилка з ConnectionString або БД недоступна.</response>
         [HttpGet("test-db")]
         public async Task<IActionResult> TestDatabaseConnection()
         {

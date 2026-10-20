@@ -13,7 +13,6 @@ export default function ForgotPassword() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  // Крок 1: Запит коду відновлення
   const handleRequestCode = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -43,7 +42,6 @@ export default function ForgotPassword() {
     }
   };
 
-  // Крок 2: Встановлення нового пароля
   const handleResetPassword = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -92,7 +90,6 @@ export default function ForgotPassword() {
           </p>
         </div>
 
-        {/* Повідомлення про статус */}
         {message.text && (
           <div
             className={`p-3 mb-6 rounded-lg text-sm font-medium ${
@@ -105,7 +102,6 @@ export default function ForgotPassword() {
           </div>
         )}
 
-        {/* КРОК 1: Запит коду */}
         {step === 1 && (
           <form onSubmit={handleRequestCode} className="space-y-4">
             <div>
@@ -132,7 +128,6 @@ export default function ForgotPassword() {
           </form>
         )}
 
-        {/* КРОК 2: Введення коду та нового пароля */}
         {step === 2 && (
           <form onSubmit={handleResetPassword} className="space-y-4">
             <div>

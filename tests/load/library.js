@@ -107,7 +107,7 @@ export default function (data) {
     check(res, { 'catalog 200': (r) => r.status === 200 });
     think(1, 3);
 
-    // Так каталог завантажує фронтенд (усі книги однією сторінкою)
+    // Так панель бібліотекаря завантажує фонд (до 100 книг однією сторінкою)
     const full = http.get(`${BASE_URL}/books?pageSize=100`, { tags: { name: 'catalog_100' } });
     check(full, { 'catalog_100 200': (r) => r.status === 200 });
     think(1, 2);

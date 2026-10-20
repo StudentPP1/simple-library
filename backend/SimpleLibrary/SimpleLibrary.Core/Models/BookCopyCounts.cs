@@ -2,9 +2,6 @@
 
 namespace SimpleLibrary.Core.Models
 {
-    /// <summary>
-    /// Кількість примірників книги за статусами та загальний статус книги для каталогу (FR-7).
-    /// </summary>
     public record BookCopyCounts(int Available, int Reserved, int IssuedOut)
     {
         public static BookCopyCounts From(IEnumerable<BookCopy> copies)

@@ -14,7 +14,6 @@ export default function EditBookModal({ book, onClose, onSuccess }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Заповнюємо форму поточними даними книги
   useEffect(() => {
     if (book) {
       setFormData({
@@ -39,7 +38,6 @@ export default function EditBookModal({ book, onClose, onSuccess }) {
     setError('');
 
     try {
-      // Відправляємо PUT-запит на оновлення книги за її ID
       await api.put(`/Books/${book.id}`, {
         title: formData.title.trim(),
         author: formData.author.trim(),

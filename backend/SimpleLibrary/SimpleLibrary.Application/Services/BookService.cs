@@ -30,14 +30,11 @@ namespace SimpleLibrary.Application.Services
 
             string? normalizedDescription = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
 
-            var book = new Book(request.Title.Trim(), request.Author.Trim(), request.Genre.Trim(), request.ISBN.Trim(), request.PublicationYear, normalizedDescription);
+            var book = new Book(request.Title.Trim(), request.Author.Trim(), request.Genre.Trim(), request.ISBN.Trim(), request.PublicationYear, normalizedDescription, request.Price);
 
             for (int i = 0; i < request.CopiesCount; i++)
             {
-                string invNumber = $"INV-{Guid.NewGuid().ToString().Substring(0, 8).ToUpper()}";
-                var copy = new BookCopy(book.Id, invNumber);
-
-                book.AddCopy(copy);
+                book.AddCopy(CreateCopy(book.Id));
             }
 
             await _unitOfWork.BookRepository.AddAsync(book);
@@ -118,7 +115,16 @@ namespace SimpleLibrary.Application.Services
                 ? book.Description
                 : (string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim());
 
-            book.UpdateInfo(request.Title.Trim(), request.Author.Trim(), request.Genre.Trim(), request.ISBN.Trim(), request.PublicationYear, newDescription);
+            book.UpdateInfo(request.Title.Trim(), request.Author.Trim(), request.Genre.Trim(), request.ISBN.Trim(), request.PublicationYear, newDescription, request.Price ?? book.Price);
+
+            if (request.CopiesCount.HasValue)
+            {
+                var copiesError = await ChangeCopiesCountAsync(book, request.CopiesCount.Value);
+                if (copiesError != null)
+                {
+                    return ServiceResponse<BookResponse>.Fail(copiesError, ErrorType.Conflict);
+                }
+            }
 
             await _unitOfWork.SaveChangesAsync();
 
@@ -155,6 +161,45 @@ namespace SimpleLibrary.Application.Services
             }
         }
 
+        /// <summary>
+        /// Доводить кількість примірників у фонді до targetCount (FR-11).
+        /// Нові примірники додаються, а зайві вільні списуються (статус Lost), щоб зберегти історію видач.
+        /// Повертає текст помилки, якщо вільних примірників для списання не вистачає.
+        /// </summary>
+        private async Task<string?> ChangeCopiesCountAsync(Book book, int targetCount)
+        {
+            int difference = targetCount - book.ActiveCopiesCount;
+
+            if (difference < 0)
+            {
+                var freeCopies = book.Copies.Where(c => c.Status == CopyStatus.Available).ToList();
+                if (freeCopies.Count < -difference)
+                {
+                    return $"Не можна зменшити кількість до {targetCount}: списати можна лише вільні примірники, зараз їх {freeCopies.Count}.";
+                }
+
+                foreach (var copy in freeCopies.Take(-difference))
+                {
+                    copy.ChangeStatus(CopyStatus.Lost);
+                }
+            }
+
+            for (int i = 0; i < difference; i++)
+            {
+                var copy = CreateCopy(book.Id);
+                book.AddCopy(copy);
+                await _unitOfWork.BookRepository.AddCopyAsync(copy);
+            }
+
+            return null;
+        }
+
+        private static BookCopy CreateCopy(Guid bookId)
+        {
+            string invNumber = $"INV-{Guid.NewGuid().ToString().Substring(0, 8).ToUpper()}";
+            return new BookCopy(bookId, invNumber);
+        }
+
         private static BookResponse MapToResponse(Book book, BookCopyCounts copies)
         {
             return new BookResponse
@@ -166,6 +211,7 @@ namespace SimpleLibrary.Application.Services
                 ISBN = book.ISBN,
                 PublicationYear = book.PublicationYear,
                 Description = book.Description,
+                Price = book.Price,
                 AvailableCopiesCount = copies.Available,
                 ReservedCopiesCount = copies.Reserved,
                 IssuedCopiesCount = copies.IssuedOut,

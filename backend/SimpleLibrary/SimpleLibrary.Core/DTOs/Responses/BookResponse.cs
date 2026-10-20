@@ -9,6 +9,7 @@
         public string ISBN { get; init; } = string.Empty;
         public string? Description { get; init; }
         public int PublicationYear { get; init; }
+        public decimal? Price { get; init; }
 
         public int AvailableCopiesCount { get; init; }
         public int ReservedCopiesCount { get; init; }

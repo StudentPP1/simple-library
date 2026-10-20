@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
 
+const formatDate = (value) => (value ? new Date(value).toLocaleDateString('uk-UA') : '—');
+
 export default function Dashboard() {
   const [loans, setLoans] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -48,7 +50,6 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
-      {/* Dashboard Banner */}
       <div className="bg-white p-8 rounded-3xl border border-[#E5E7E3] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <span className="px-3 py-1 bg-[#E8EFE8] text-[#294E40] text-xs font-bold rounded-full uppercase tracking-wider">
@@ -68,7 +69,6 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* Messages */}
       {message.text && (
         <div
           className={`p-4 rounded-2xl text-sm font-bold flex items-center justify-between border shadow-sm ${
@@ -82,7 +82,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Tab Controls in Soft Sage */}
       <div className="bg-[#E8EFE8] p-1.5 rounded-2xl inline-flex gap-1 border border-[#E5E7E3]">
         <button
           onClick={() => setActiveTab('current')}
@@ -106,7 +105,6 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* Current Loans */}
       {activeTab === 'current' && (
         <div>
           {loading ? (
@@ -121,7 +119,6 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {currentLoans.map((loan) => {
                 const pending = isPending(loan.status);
-                // Прострочену видачу виділяємо червоним (FR-8); isOverdue рахує бекенд
                 const overdue = !pending && loan.isOverdue;
 
                 return (
@@ -174,7 +171,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* History */}
       {activeTab === 'history' && (
         <div className="bg-white rounded-3xl border border-[#E5E7E3] shadow-sm overflow-hidden">
           {historyLoans.length === 0 ? (
@@ -186,7 +182,8 @@ export default function Dashboard() {
                   <tr className="bg-[#FAF9F6] border-b border-[#E5E7E3] text-xs font-bold text-[#69766E] uppercase">
                     <th className="py-4 px-6">Книга</th>
                     <th className="py-4 px-6">Статус</th>
-                    <th className="py-4 px-6">Дата</th>
+                    <th className="py-4 px-6">Дата видачі</th>
+                    <th className="py-4 px-6">Дата повернення</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E5E7E3]">
@@ -200,11 +197,8 @@ export default function Dashboard() {
                           {loan.status === 'Returned' ? 'Повернено' : 'Скасовано'}
                         </span>
                       </td>
-                      <td className="py-4 px-6 text-xs text-[#69766E]">
-                        {loan.returnDate
-                          ? new Date(loan.returnDate).toLocaleDateString('uk-UA')
-                          : '—'}
-                      </td>
+                      <td className="py-4 px-6 text-xs text-[#69766E]">{formatDate(loan.issuedAt)}</td>
+                      <td className="py-4 px-6 text-xs text-[#69766E]">{formatDate(loan.returnedAt)}</td>
                     </tr>
                   ))}
                 </tbody>

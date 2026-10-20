@@ -119,6 +119,78 @@ namespace SimpleLibrary.Application.Tests.Services
             Assert.Equal(copyStatuses.Count(s => s == CopyStatus.IssuedOut), result.Data.IssuedCopiesCount);
         }
 
+        [Fact]
+        public async Task UpdateBookAsync_MoreCopies_AddsNewCopiesAndSaves()
+        {
+            var book = CreateBookWithCopies(CopyStatus.Available, CopyStatus.IssuedOut);
+            _mockBookRepository.Setup(r => r.GetByIdAsync(book.Id)).ReturnsAsync(book);
+
+            var result = await _bookService.UpdateBookAsync(book.Id, CreateUpdateRequest(copiesCount: 4));
+
+            Assert.True(result.Success);
+            Assert.Equal(4, book.ActiveCopiesCount);
+            Assert.Equal(3, result.Data!.AvailableCopiesCount);
+            _mockBookRepository.Verify(r => r.AddCopyAsync(It.Is<BookCopy>(c => c.BookId == book.Id && c.Status == CopyStatus.Available)), Times.Exactly(2));
+            _mockUow.Verify(u => u.SaveChangesAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task UpdateBookAsync_FewerCopies_WritesOffOnlyFreeCopies()
+        {
+            var book = CreateBookWithCopies(CopyStatus.Available, CopyStatus.Available, CopyStatus.IssuedOut);
+            _mockBookRepository.Setup(r => r.GetByIdAsync(book.Id)).ReturnsAsync(book);
+
+            var result = await _bookService.UpdateBookAsync(book.Id, CreateUpdateRequest(copiesCount: 2));
+
+            Assert.True(result.Success);
+            Assert.Equal(2, book.ActiveCopiesCount);
+            Assert.Single(book.Copies, c => c.Status == CopyStatus.Lost);
+            Assert.Single(book.Copies, c => c.Status == CopyStatus.IssuedOut);
+            _mockBookRepository.Verify(r => r.AddCopyAsync(It.IsAny<BookCopy>()), Times.Never);
+            _mockUow.Verify(u => u.SaveChangesAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task UpdateBookAsync_FewerCopiesThanIssued_ReturnsConflictWithoutSaving()
+        {
+            var book = CreateBookWithCopies(CopyStatus.Available, CopyStatus.Reserved, CopyStatus.IssuedOut);
+            _mockBookRepository.Setup(r => r.GetByIdAsync(book.Id)).ReturnsAsync(book);
+
+            var result = await _bookService.UpdateBookAsync(book.Id, CreateUpdateRequest(copiesCount: 1));
+
+            Assert.False(result.Success);
+            Assert.Equal(ErrorType.Conflict, result.Error);
+            Assert.DoesNotContain(book.Copies, c => c.Status == CopyStatus.Lost);
+            _mockUow.Verify(u => u.SaveChangesAsync(), Times.Never);
+        }
+
+        [Fact]
+        public async Task UpdateBookAsync_WithoutPriceAndCopies_KeepsThem()
+        {
+            var book = CreateBookWithCopies(CopyStatus.Available, CopyStatus.Available);
+            book.UpdateInfo(book.Title, book.Author, book.Genre, book.ISBN, book.PublicationYear, null, 350m);
+            _mockBookRepository.Setup(r => r.GetByIdAsync(book.Id)).ReturnsAsync(book);
+
+            var result = await _bookService.UpdateBookAsync(book.Id, CreateUpdateRequest(copiesCount: null, price: null));
+
+            Assert.True(result.Success);
+            Assert.Equal(350m, result.Data!.Price);
+            Assert.Equal(2, book.ActiveCopiesCount);
+        }
+
+        [Fact]
+        public async Task UpdateBookAsync_NewPrice_UpdatesPrice()
+        {
+            var book = CreateBookWithCopies(CopyStatus.Available);
+            _mockBookRepository.Setup(r => r.GetByIdAsync(book.Id)).ReturnsAsync(book);
+
+            var result = await _bookService.UpdateBookAsync(book.Id, CreateUpdateRequest(copiesCount: null, price: 499.90m));
+
+            Assert.True(result.Success);
+            Assert.Equal(499.90m, book.Price);
+            Assert.Equal(499.90m, result.Data!.Price);
+        }
+
         private void AssertValidationFailureWithoutSaving(bool success, ErrorType error)
         {
             Assert.False(success);
@@ -137,6 +209,20 @@ namespace SimpleLibrary.Application.Tests.Services
                 Genre = "Programming",
                 ISBN = "9780132350884",
                 PublicationYear = publicationYear,
+                CopiesCount = copiesCount
+            };
+        }
+
+        private static UpdateBookRequest CreateUpdateRequest(int? copiesCount, decimal? price = null)
+        {
+            return new UpdateBookRequest
+            {
+                Title = "Clean Code",
+                Author = "Robert Martin",
+                Genre = "Programming",
+                ISBN = "9780132350884",
+                PublicationYear = 2008,
+                Price = price,
                 CopiesCount = copiesCount
             };
         }

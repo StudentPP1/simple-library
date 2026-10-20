@@ -85,6 +85,12 @@ namespace SimpleLibrary.DataAccess.Postgres.Repositories
             return (items, totalCount);
         }
 
+        public async Task AddCopyAsync(BookCopy copy)
+        {
+            // Явно позначаємо примірник як новий: інакше EF прийме його за наявний через вже заданий Id
+            await _context.BookCopies.AddAsync(copy);
+        }
+
         public void Delete(Book book)
         {
             _context.Books.Remove(book);

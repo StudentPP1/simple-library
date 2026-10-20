@@ -10,6 +10,7 @@ namespace SimpleLibrary.Core.Interfaces.Repositories
             int pageNumber, int pageSize, string? searchTerm, string? genre);
         Task<IEnumerable<string>> GetGenresAsync();
         Task AddAsync(Book book);
+        Task AddCopyAsync(BookCopy copy);
         void Delete(Book book);
     }
 }

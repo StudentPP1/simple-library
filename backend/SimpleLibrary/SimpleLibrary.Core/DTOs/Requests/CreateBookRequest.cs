@@ -23,6 +23,9 @@ namespace SimpleLibrary.Core.DTOs.Requests
 
         public int PublicationYear { get; init; }
 
+        [Range(typeof(decimal), "0", "100000", ErrorMessage = "Ціна має бути від 0 до 100000")]
+        public decimal? Price { get; init; }
+
         [Range(1, 100, ErrorMessage = "Кількість примірників має бути від 1 до 100")]
         public int CopiesCount { get; init; }
     }
