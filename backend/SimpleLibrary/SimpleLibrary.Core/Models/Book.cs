@@ -16,9 +16,6 @@ namespace SimpleLibrary.Core.Models
         private readonly List<BookCopy> _copies = new();
         public IReadOnlyCollection<BookCopy> Copies => _copies.AsReadOnly();
 
-        /// <summary>
-        /// Кількість примірників у фонді: усі, крім списаних (Lost).
-        /// </summary>
         public int ActiveCopiesCount => _copies.Count(c => c.Status != CopyStatus.Lost);
 
         private Book() { }

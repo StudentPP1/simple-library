@@ -7,7 +7,6 @@ export default function DebtorsModal({ onClose }) {
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('overdue'); // 'overdue' (лише боржники) або 'all' (усі активні)
 
-  // Перевірка, чи прострочена видача
   const isOverdue = (dueDate) => {
     if (!dueDate) return false;
     const due = new Date(dueDate);
@@ -16,7 +15,6 @@ export default function DebtorsModal({ onClose }) {
     return due < today;
   };
 
-  // Кількість днів прострочення
   const getOverdueDays = (dueDate) => {
     if (!dueDate) return 0;
     const due = new Date(dueDate);
@@ -45,14 +43,12 @@ export default function DebtorsModal({ onClose }) {
     fetchLoans();
   }, []);
 
-  // Фільтрація даних залежно від обраного режиму
   const overdueLoans = loans.filter((loan) => isOverdue(loan.dueDate));
   const displayedLoans = filter === 'overdue' ? overdueLoans : loans;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-xl max-w-3xl w-full p-6 shadow-xl border max-h-[85vh] flex flex-col">
-        {/* Заголовок та закриття */}
         <div className="flex justify-between items-center mb-4 border-b pb-3">
           <div>
             <h3 className="text-xl font-bold text-gray-800">📋 Боржники та активні видачі </h3>
@@ -63,7 +59,6 @@ export default function DebtorsModal({ onClose }) {
           </button>
         </div>
 
-        {/* Перемикач фільтрації */}
         <div className="flex items-center justify-between gap-4 mb-4 bg-gray-50 p-2 rounded-lg border">
           <div className="flex gap-2">
             <button
@@ -98,7 +93,6 @@ export default function DebtorsModal({ onClose }) {
 
         {error && <div className="p-3 mb-4 bg-red-100 text-red-700 rounded-md text-sm">{error}</div>}
 
-        {/* Список боржників / видач */}
         <div className="overflow-y-auto flex-1 pr-1">
           {loading ? (
             <div className="py-12 text-center text-gray-500">Аналіз даних видач...</div>
@@ -169,7 +163,6 @@ export default function DebtorsModal({ onClose }) {
           )}
         </div>
 
-        {/* Нижня панель */}
         <div className="flex justify-between items-center pt-4 border-t mt-4 text-xs text-gray-500">
           <span>Всього боржників: <strong className="text-red-600">{overdueLoans.length}</strong></span>
           <button

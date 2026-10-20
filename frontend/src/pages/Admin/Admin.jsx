@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
 
-// Примірники у фонді: вільні, заброньовані й видані (списані не рахуються)
 const activeCopies = (b) => (b.availableCopiesCount ?? 0) + (b.reservedCopiesCount ?? 0) + (b.issuedCopiesCount ?? 0);
 
-// Порожнє поле ціни - ціну не вказано
 const toPrice = (value) => (value === '' || value === null || value === undefined ? null : Number(value));
 
 export default function Admin() {
@@ -186,7 +184,6 @@ export default function Admin() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[#E5E7E3] pb-6">
         <div>
           <span className="px-2.5 py-1 bg-[#E8EFE8] text-[#294E40] text-xs font-bold rounded-full uppercase tracking-wider">
@@ -201,7 +198,6 @@ export default function Admin() {
         </div>
       </div>
 
-      {/* Messages */}
       {message.text && (
         <div
           className={`p-4 rounded-xl text-sm font-semibold flex items-center justify-between border shadow-sm ${
@@ -215,7 +211,6 @@ export default function Admin() {
         </div>
       )}
 
-      {/* Stats Overview */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-[#E5E7E3] shadow-sm flex items-center justify-between">
           <div>
@@ -258,7 +253,6 @@ export default function Admin() {
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="bg-[#E8EFE8] p-1 rounded-xl inline-flex gap-1 border border-[#E5E7E3]">
         <button
           onClick={() => {
@@ -289,10 +283,8 @@ export default function Admin() {
         </button>
       </div>
 
-      {/* SECTION 1: BOOKS */}
       {activeSection === 'books' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Form */}
           <div className="lg:col-span-4 bg-white p-6 rounded-2xl shadow-sm border border-[#E5E7E3] space-y-5">
             <div>
               <h3 className="text-lg font-extrabold text-[#25312B]">
@@ -456,7 +448,6 @@ export default function Admin() {
             </form>
           </div>
 
-          {/* Table */}
           <div className="lg:col-span-8 bg-white rounded-2xl shadow-sm border border-[#E5E7E3] overflow-hidden">
             <div className="p-6 border-b border-[#E5E7E3]">
               <h3 className="text-lg font-extrabold text-[#25312B]">Каталог книг у бібліотеці</h3>
@@ -529,7 +520,6 @@ export default function Admin() {
         </div>
       )}
 
-      {/* SECTION 2: LOANS */}
       {activeSection === 'loans' && (
         <div className="bg-white rounded-2xl shadow-sm border border-[#E5E7E3] overflow-hidden">
           <div className="p-6 border-b border-[#E5E7E3]">

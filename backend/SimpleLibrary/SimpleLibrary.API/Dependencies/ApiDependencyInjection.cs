@@ -17,7 +17,6 @@ namespace SimpleLibrary.API.Dependencies
             services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
             services.AddScoped<IEmailSender, SmtpEmailSender>();
 
-
             var jwtSecretKey = configuration["JwtSettings:SecretKey"];
             if (string.IsNullOrWhiteSpace(jwtSecretKey) || Encoding.UTF8.GetByteCount(jwtSecretKey) < 32)
             {
@@ -86,7 +85,6 @@ namespace SimpleLibrary.API.Dependencies
 
             services.AddHostedService<ReservationCleanupService>();
 
-            // NFR-4: перевірка стану сервісу та доступності БД для моніторингу uptime
             services.AddHealthChecks()
                 .AddDbContextCheck<LibraryDbContext>("postgres");
 

@@ -7,7 +7,6 @@ const api = axios.create({
   },
 });
 
-// Перехоплювач запитів: підставляємо токен у заголовок Authorization
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('jwt_token') || localStorage.getItem('token');
@@ -19,7 +18,6 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Перехоплювач відповідей: якщо сервер повернув 401 (токен прострочений або недійсний)
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -28,10 +26,8 @@ api.interceptors.response.use(
       localStorage.removeItem('token');
       localStorage.removeItem('jwt_token');
 
-      // Сповіщаємо додаток про зміну стану авторизації
       window.dispatchEvent(new Event('authChange'));
 
-      // Перенаправляємо на сторінку входу, якщо користувач ще не там
       if (!window.location.pathname.includes('/login')) {
         window.location.href = '/login';
       }

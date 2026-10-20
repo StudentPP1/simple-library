@@ -7,7 +7,6 @@ export default function ReturnBookModal({ onClose, onSuccess }) {
   const [processingId, setProcessingId] = useState(null);
   const [error, setError] = useState('');
 
-  // Завантажуємо список усіх активних (неповернених) видач
   const fetchActiveLoans = async () => {
     setLoading(true);
     setError('');
@@ -27,17 +26,14 @@ export default function ReturnBookModal({ onClose, onSuccess }) {
     fetchActiveLoans();
   }, []);
 
-  // Обробник повернення книги
   const handleReturn = async (loanId) => {
     setProcessingId(loanId);
     setError('');
 
     try {
-      // Відправляємо запит на повернення книги
       await api.post(`/Loans/${loanId}/return`);
 
       onSuccess('Книгу успішно повернуто в бібліотеку!');
-      // Оновлюємо список активних видач
       fetchActiveLoans();
     } catch (err) {
       console.error(err);

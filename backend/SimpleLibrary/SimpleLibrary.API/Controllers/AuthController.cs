@@ -54,10 +54,6 @@ namespace SimpleLibrary.API.Controllers
             }
         }
 
-        /// <summary>
-        /// Авторизація користувача за email і паролем. Повертає JWT-токен.
-        /// Доступно всім користувачам.
-        /// </summary>
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
@@ -79,9 +75,6 @@ namespace SimpleLibrary.API.Controllers
             }
         }
 
-        /// <summary>
-        /// Запит на відновлення пароля (відправка email).
-        /// </summary>
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
         {
@@ -97,9 +90,6 @@ namespace SimpleLibrary.API.Controllers
             }
         }
 
-        /// <summary>
-        /// Встановлення нового пароля за допомогою токена з email.
-        /// </summary>
         [HttpPost("reset-password")]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
         {
@@ -132,7 +122,7 @@ namespace SimpleLibrary.API.Controllers
                 ErrorType.Unauthorized => Unauthorized(apiResponse),   // HTTP 401
                 ErrorType.Forbidden => StatusCode(403, apiResponse),   // HTTP 403
                 ErrorType.Validation => BadRequest(apiResponse),       // HTTP 400
-                _ => StatusCode(500, apiResponse)                      // HTTP 500
+                _ => StatusCode(500, apiResponse)
             };
         }
     }

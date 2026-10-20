@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
 
-// Дата у форматі дд.мм.рррр або прочерк, якщо події не було (наприклад, скасоване бронювання не видавалося)
 const formatDate = (value) => (value ? new Date(value).toLocaleDateString('uk-UA') : '—');
 
 export default function Dashboard() {
@@ -51,7 +50,6 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
-      {/* Dashboard Banner */}
       <div className="bg-white p-8 rounded-3xl border border-[#E5E7E3] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <span className="px-3 py-1 bg-[#E8EFE8] text-[#294E40] text-xs font-bold rounded-full uppercase tracking-wider">
@@ -71,7 +69,6 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* Messages */}
       {message.text && (
         <div
           className={`p-4 rounded-2xl text-sm font-bold flex items-center justify-between border shadow-sm ${
@@ -85,7 +82,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Tab Controls in Soft Sage */}
       <div className="bg-[#E8EFE8] p-1.5 rounded-2xl inline-flex gap-1 border border-[#E5E7E3]">
         <button
           onClick={() => setActiveTab('current')}
@@ -109,7 +105,6 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* Current Loans */}
       {activeTab === 'current' && (
         <div>
           {loading ? (
@@ -124,7 +119,6 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {currentLoans.map((loan) => {
                 const pending = isPending(loan.status);
-                // Прострочену видачу виділяємо червоним (FR-8); isOverdue рахує бекенд
                 const overdue = !pending && loan.isOverdue;
 
                 return (
@@ -177,7 +171,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* History */}
       {activeTab === 'history' && (
         <div className="bg-white rounded-3xl border border-[#E5E7E3] shadow-sm overflow-hidden">
           {historyLoans.length === 0 ? (

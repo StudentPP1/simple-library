@@ -23,9 +23,6 @@ namespace SimpleLibrary.API.Controllers
             _logger = logger;
         }
 
-        /// <summary>
-        /// Бронювання книги читачем.
-        /// </summary>
         [HttpPost("reserve")]
         public async Task<IActionResult> ReserveBook([FromBody] ReserveBookRequest request)
         {
@@ -45,10 +42,6 @@ namespace SimpleLibrary.API.Controllers
             }
         }
 
-        /// <summary>
-        /// Оформлення видачі примірника читачу.
-        /// Доступно тільки Бібліотекарю.
-        /// </summary>
         [HttpPost("{id:guid}/issue")]
         [Authorize(Roles = "Librarian")]
         public async Task<IActionResult> IssueBook(Guid id, [FromBody] IssueBookRequest request)
@@ -69,10 +62,6 @@ namespace SimpleLibrary.API.Controllers
             }
         }
 
-        /// <summary>
-        /// Фіксація повернення книги.
-        /// Доступно тільки Бібліотекарю.
-        /// </summary>
         [HttpPost("{id:guid}/return")]
         [Authorize(Roles = "Librarian")]
         public async Task<IActionResult> ReturnBook(Guid id)
@@ -113,10 +102,6 @@ namespace SimpleLibrary.API.Controllers
             }
         }
 
-        /// <summary>
-        /// Список активних видач і боржників.
-        /// Доступно тільки Бібліотекарю.
-        /// </summary>
         [HttpGet("active")]
         [Authorize(Roles = "Librarian")]
         public async Task<IActionResult> GetActiveLoans()
@@ -178,7 +163,7 @@ namespace SimpleLibrary.API.Controllers
                 ErrorType.Unauthorized => Unauthorized(apiResponse),   // HTTP 401
                 ErrorType.Forbidden => StatusCode(403, apiResponse),   // HTTP 403
                 ErrorType.Validation => BadRequest(apiResponse),       // HTTP 400
-                _ => StatusCode(500, apiResponse)                      // HTTP 500
+                _ => StatusCode(500, apiResponse)
             };
         }
     }

@@ -22,10 +22,6 @@ namespace SimpleLibrary.API.Controllers
             _logger = logger;
         }
 
-        /// <summary>
-        /// Перегляд електронного каталогу книг із пошуком, фільтрацією та пагінацією.
-        /// Доступно всім користувачам.
-        /// </summary>
         [HttpGet]
         public async Task<IActionResult> GetCatalog([FromQuery] string? search = null, [FromQuery] string? genre = null, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
@@ -61,10 +57,6 @@ namespace SimpleLibrary.API.Controllers
             }
         }
 
-        /// <summary>
-        /// Отримання детальної інформації про книгу.
-        /// Доступно всім користувачам.
-        /// </summary>
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetBookById(Guid id)
         {
@@ -81,10 +73,6 @@ namespace SimpleLibrary.API.Controllers
             }
         }
 
-        /// <summary>
-        /// Додавання нової книги та генерація примірників.
-        /// Доступно тільки Бібліотекарю.
-        /// </summary>
         [HttpPost]
         [Authorize(Roles = "Librarian")]
         public async Task<IActionResult> AddBook([FromBody] CreateBookRequest request)
@@ -102,10 +90,6 @@ namespace SimpleLibrary.API.Controllers
             }
         }
 
-        /// <summary>
-        /// Редагування інформації про книгу.
-        /// Доступно тільки Бібліотекарю.
-        /// </summary>
         [HttpPut("{id:guid}")]
         [Authorize(Roles = "Librarian")]
         public async Task<IActionResult> UpdateBook(Guid id, [FromBody] UpdateBookRequest request)
@@ -123,10 +107,6 @@ namespace SimpleLibrary.API.Controllers
             }
         }
 
-        /// <summary>
-        /// Видалення книги з каталогу.
-        /// Доступно тільки Бібліотекарю.
-        /// </summary>
         [HttpDelete("{id:guid}")]
         [Authorize(Roles = "Librarian")]
         public async Task<IActionResult> DeleteBook(Guid id)
@@ -155,7 +135,7 @@ namespace SimpleLibrary.API.Controllers
                 ErrorType.Unauthorized => Unauthorized(apiResponse),   // HTTP 401
                 ErrorType.Forbidden => StatusCode(403, apiResponse),   // HTTP 403
                 ErrorType.Validation => BadRequest(apiResponse),       // HTTP 400
-                _ => StatusCode(500, apiResponse)                      // HTTP 500
+                _ => StatusCode(500, apiResponse)
             };
         }
     }

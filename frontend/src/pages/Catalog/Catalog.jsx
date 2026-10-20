@@ -5,11 +5,8 @@ import api from '../../services/api';
 // Пошук і фільтр виконує сервер, тому знаходяться всі книги, а не лише завантажені.
 const PAGE_SIZE = 20;
 
-// Ціна книги в гривнях (FR-3); якщо бібліотекар її не вказав - так і пишемо
 const formatPrice = (price) => (price != null ? `${price} грн` : 'Ціну не вказано');
 
-// Статус книги в каталозі (FR-7): в наявності, заброньована або видана.
-// Статус рахує бекенд за станом примірників (поле status).
 const getAvailability = (book) => {
   const available = book.availableCopiesCount ?? 0;
   if (available > 0) {
@@ -95,7 +92,6 @@ export default function Catalog() {
     loadPage(1);
   }, [loadPage]);
 
-  // Нескінченна прокрутка: коли низ списку з'являється на екрані — вантажимо наступну сторінку
   useEffect(() => {
     const sentinel = sentinelRef.current;
     if (!sentinel || !hasMore || loading || loadingMore) return;
@@ -143,7 +139,6 @@ export default function Catalog() {
 
   return (
     <div className="space-y-8">
-      {/* Hero Banner */}
       <div className="relative overflow-hidden bg-[#294E40] text-white rounded-3xl p-8 sm:p-12 shadow-lg border border-[#294E40]/20">
         <div className="relative z-10 max-w-2xl space-y-4">
           <span className="px-3 py-1 bg-[#E8EFE8]/20 text-[#E8EFE8] border border-[#E8EFE8]/30 text-xs font-bold rounded-full uppercase tracking-wider">
@@ -156,7 +151,6 @@ export default function Catalog() {
             Бронюйте примірники онлайн та отримуйте їх у бібліотеці за декілька хвилин.
           </p>
 
-          {/* Search Inputs */}
           <div className="pt-2 flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-[#E8EFE8]/70">
@@ -191,7 +185,6 @@ export default function Catalog() {
         </div>
       </div>
 
-      {/* Messages */}
       {message.text && (
         <div
           className={`p-4 rounded-2xl text-sm font-bold flex items-center justify-between border shadow-sm ${
@@ -205,7 +198,6 @@ export default function Catalog() {
         </div>
       )}
 
-      {/* Grid */}
       {/* Прихований заголовок: між h1 банера і h3 карток має бути h2 (доступність, порядок заголовків) */}
       <h2 className="sr-only">Книги в каталозі</h2>
       {loading ? (
@@ -230,7 +222,6 @@ export default function Catalog() {
                 className="bg-white rounded-2xl border border-[#E5E7E3] shadow-sm hover:shadow-md hover:-translate-y-1 transition duration-200 flex flex-col justify-between overflow-hidden group"
               >
                 <div className="p-6 space-y-4">
-                  {/* Рядок з жанром, бейджем наявності та кнопкою "•••" */}
                   <div className="flex justify-between items-center gap-2">
                     <span className="px-2.5 py-1 bg-[#E8EFE8] text-[#294E40] text-[11px] font-bold rounded-lg border border-[#E5E7E3] truncate">
                       {book.genre || 'Література'}
@@ -243,7 +234,6 @@ export default function Catalog() {
                         {availability.badge}
                       </span>
 
-                      {/* КНОПКА ТРИ КРАПКИ */}
                       <button
                         onClick={() => setSelectedBookForDetails(book)}
                         title="Деталі книги"
@@ -301,7 +291,6 @@ export default function Catalog() {
         <div className="py-6 text-center text-sm text-[#69766E] font-medium">Завантаження ще книг...</div>
       )}
 
-      {/* МОДАЛЬНЕ ВІКНО ДЕТАЛЕЙ */}
       {selectedBookForDetails && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
           <div className="bg-white rounded-3xl border border-[#E5E7E3] shadow-2xl max-w-lg w-full p-6 sm:p-8 space-y-6 relative overflow-hidden">
