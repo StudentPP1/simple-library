@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
 
+// Примірники у фонді: вільні, заброньовані й видані (списані не рахуються)
+const activeCopies = (b) => (b.availableCopiesCount ?? 0) + (b.reservedCopiesCount ?? 0) + (b.issuedCopiesCount ?? 0);
+
+// Порожнє поле ціни - ціну не вказано
+const toPrice = (value) => (value === '' || value === null || value === undefined ? null : Number(value));
+
 export default function Admin() {
   const [activeSection, setActiveSection] = useState('books');
   const [books, setBooks] = useState([]);
@@ -13,6 +19,7 @@ export default function Admin() {
     isbn: '',
     publicationYear: new Date().getFullYear(),
     copiesCount: 1,
+    price: '',
     description: '',
   });
 
@@ -70,7 +77,7 @@ export default function Admin() {
   };
 
   const totalBooks = books.length;
-  const totalCopies = books.reduce((sum, b) => sum + (b.copiesCount || 1), 0);
+  const totalCopies = books.reduce((sum, b) => sum + activeCopies(b), 0);
   const activeLoansCount = loans.filter((l) => isActiveLoan(l.status)).length;
   const overdueCount = loans.filter((l) => checkIsOverdue(l)).length;
 
@@ -83,6 +90,7 @@ export default function Admin() {
       isbn: '',
       publicationYear: new Date().getFullYear(),
       copiesCount: 1,
+      price: '',
       description: '',
     });
   };
@@ -98,6 +106,8 @@ export default function Admin() {
           isbn: bookForm.isbn,
           publicationYear: Number(bookForm.publicationYear),
           description: bookForm.description,
+          price: toPrice(bookForm.price),
+          copiesCount: Number(bookForm.copiesCount),
         });
         showMsg('success', 'Інформацію про книгу успішно оновлено!');
       } else {
@@ -105,6 +115,7 @@ export default function Admin() {
           ...bookForm,
           publicationYear: Number(bookForm.publicationYear),
           copiesCount: Number(bookForm.copiesCount),
+          price: toPrice(bookForm.price),
           description: bookForm.description,
         });
         showMsg('success', 'Нову книгу та її примірники додано!');
@@ -125,7 +136,8 @@ export default function Admin() {
       genre: book.genre || '',
       isbn: book.isbn || '',
       publicationYear: book.publicationYear || new Date().getFullYear(),
-      copiesCount: 1,
+      copiesCount: activeCopies(book) || 1,
+      price: book.price ?? '',
       description: book.description || '',
     });
   };
@@ -387,20 +399,40 @@ export default function Admin() {
                   />
                 </div>
 
-                {!editBookId && (
-                  <div>
-                    <label className="block text-xs font-bold text-[#69766E] uppercase tracking-wider mb-1">
-                      Кількість
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      required
-                      value={bookForm.copiesCount}
-                      onChange={(e) => setBookForm({ ...bookForm, copiesCount: e.target.value })}
-                      className="w-full px-3.5 py-2.5 bg-[#FAF9F6] border border-[#E5E7E3] rounded-xl text-sm focus:bg-white focus:ring-1 focus:ring-[#294E40] focus:border-[#294E40] outline-none text-[#25312B]"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#69766E] uppercase tracking-wider mb-1">
+                    Кількість
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    required
+                    value={bookForm.copiesCount}
+                    onChange={(e) => setBookForm({ ...bookForm, copiesCount: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-[#FAF9F6] border border-[#E5E7E3] rounded-xl text-sm focus:bg-white focus:ring-1 focus:ring-[#294E40] focus:border-[#294E40] outline-none text-[#25312B]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#69766E] uppercase tracking-wider mb-1">
+                  Ціна, грн
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100000"
+                  step="0.01"
+                  value={bookForm.price}
+                  onChange={(e) => setBookForm({ ...bookForm, price: e.target.value })}
+                  placeholder="350"
+                  className="w-full px-3.5 py-2.5 bg-[#FAF9F6] border border-[#E5E7E3] rounded-xl text-sm focus:bg-white focus:ring-1 focus:ring-[#294E40] focus:border-[#294E40] outline-none text-[#25312B]"
+                />
+                {editBookId && (
+                  <p className="text-[11px] text-[#69766E] mt-1">
+                    Під час зменшення кількості списуються лише вільні примірники.
+                  </p>
                 )}
               </div>
 
@@ -443,6 +475,8 @@ export default function Admin() {
                       <th className="py-3.5 px-5">Назва / Автор</th>
                       <th className="py-3.5 px-4">Жанр</th>
                       <th className="py-3.5 px-4">Рік</th>
+                      <th className="py-3.5 px-4">Примірники</th>
+                      <th className="py-3.5 px-4">Ціна</th>
                       <th className="py-3.5 px-5 text-right">Дії</th>
                     </tr>
                   </thead>
@@ -460,6 +494,12 @@ export default function Admin() {
                         </td>
                         <td className="py-4 px-4 text-xs font-semibold text-[#69766E] whitespace-nowrap">
                           {b.publicationYear}
+                        </td>
+                        <td className="py-4 px-4 text-xs font-semibold text-[#69766E] whitespace-nowrap" title="вільні / усього">
+                          {b.availableCopiesCount ?? 0} / {activeCopies(b)}
+                        </td>
+                        <td className="py-4 px-4 text-xs font-semibold text-[#69766E] whitespace-nowrap">
+                          {b.price != null ? `${b.price} грн` : '—'}
                         </td>
                         <td className="py-4 px-5 text-right whitespace-nowrap">
                           <div className="inline-flex gap-1.5">

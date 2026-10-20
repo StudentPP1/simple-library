@@ -5,6 +5,9 @@ import api from '../../services/api';
 // Пошук і фільтр виконує сервер, тому знаходяться всі книги, а не лише завантажені.
 const PAGE_SIZE = 20;
 
+// Ціна книги в гривнях (FR-3); якщо бібліотекар її не вказав - так і пишемо
+const formatPrice = (price) => (price != null ? `${price} грн` : 'Ціну не вказано');
+
 // Статус книги в каталозі (FR-7): в наявності, заброньована або видана.
 // Статус рахує бекенд за станом примірників (поле status).
 const getAvailability = (book) => {
@@ -259,6 +262,7 @@ export default function Catalog() {
                     <p className="text-xs font-semibold text-[#69766E] mt-1">
                       {book.author || 'Автор не вказаний'}
                     </p>
+                    <p className="text-sm font-black text-[#294E40] mt-2">{formatPrice(book.price)}</p>
                   </div>
                 </div>
 
@@ -330,7 +334,7 @@ export default function Catalog() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 text-xs font-semibold text-[#69766E]">
+            <div className="grid grid-cols-3 gap-4 text-xs font-semibold text-[#69766E]">
               <div>
                 <span className="block text-[10px] text-[#69766E] uppercase">ISBN</span>
                 <span className="text-[#25312B] font-bold">{selectedBookForDetails.isbn || '—'}</span>
@@ -338,6 +342,10 @@ export default function Catalog() {
               <div>
                 <span className="block text-[10px] text-[#69766E] uppercase">Рік видання</span>
                 <span className="text-[#25312B] font-bold">{selectedBookForDetails.publicationYear || '—'}</span>
+              </div>
+              <div>
+                <span className="block text-[10px] text-[#69766E] uppercase">Ціна</span>
+                <span className="text-[#25312B] font-bold">{formatPrice(selectedBookForDetails.price)}</span>
               </div>
             </div>
 

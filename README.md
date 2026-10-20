@@ -153,7 +153,7 @@ React SPA (Cloudflare Pages) --HTTPS, JSON, JWT--> ASP.NET Core API (Cloud Run) 
 |---|---|---|---|
 | FR-1 Реєстрація | `POST /api/Auth/register`, сторінка `/register` | юніт-тести, Postman, Selenium | виконано |
 | FR-2 Вхід і вихід, JWT | `POST /api/Auth/login`, сторінка `/login` | юніт-тести, Postman, Selenium | виконано |
-| FR-3 Каталог з посторінковим виведенням, сторінка книги | `GET /api/Books`, `GET /api/Books/{id}`, каталог з нескінченною прокруткою і вікном деталей книги | Postman, Selenium | виконано |
+| FR-3 Каталог з посторінковим виведенням, сторінка книги | `GET /api/Books`, `GET /api/Books/{id}`, каталог з нескінченною прокруткою і вікном деталей книги; назва, автор, жанр, опис і ціна (поле `price`) | Postman, Selenium | виконано |
 | FR-4 Додавання книг із примірниками | `POST /api/Books`, панель бібліотекаря | юніт-тести, Postman, Selenium | виконано |
 | FR-5 Видача примірника читачу | `POST /api/Loans/{id}/issue` | Postman, Selenium | виконано |
 | FR-6 Повернення книги | `POST /api/Loans/{id}/return` | Postman, Selenium | виконано |
@@ -161,13 +161,13 @@ React SPA (Cloudflare Pages) --HTTPS, JSON, JWT--> ASP.NET Core API (Cloud Run) 
 | FR-8 Книги на руках і дедлайни в кабінеті | `GET /api/Loans/my`, сторінка `/dashboard`; прострочені видачі (поле `isOverdue`) виділяються червоним і позначкою «Прострочено» | Postman, Selenium | виконано |
 | FR-9 Розмежування прав за ролями | `[Authorize(Roles = "Librarian")]`, маршрут `/admin` лише для бібліотекаря | Postman (401/403), Selenium | виконано |
 | FR-10 Відновлення пароля | `POST /api/Auth/forgot-password`, `POST /api/Auth/reset-password`, лист через SMTP | юніт-тести, Postman | виконано |
-| FR-11 Редагування книги | `PUT /api/Books/{id}` | Postman, Selenium | виконано |
+| FR-11 Редагування книги | `PUT /api/Books/{id}`: дані книги, ціна та кількість примірників (`copiesCount`); під час зменшення списуються лише вільні примірники | юніт-тести, Postman, Selenium | виконано |
 | FR-12 Пошук і фільтр за жанром | параметри `search` і `genre` у `GET /api/Books`, `GET /api/Books/genres` | Postman, Selenium | виконано |
 | FR-13 Бронювання | `POST /api/Loans/reserve`, `POST /api/Loans/{id}/cancel`, автоматичне скасування прострочених бронювань | юніт-тести, Postman, Selenium | виконано |
 | FR-14 Активні видачі та боржники | `GET /api/Loans/active`, вікно «Боржники» в панелі бібліотекаря | Postman | виконано |
 | FR-15 Інтерфейс для читача та бібліотекаря | React SPA: каталог, кабінет, панель бібліотекаря | Selenium | виконано |
 | FR-16 Видалення книги | `DELETE /api/Books/{id}` з підтвердженням; книгу, примірник якої виданий, видалити не можна | юніт-тести, Postman | виконано |
-| FR-17 Історія читань | `GET /api/Loans/my`, вкладка «Історія» в кабінеті читача | Postman | виконано |
+| FR-17 Історія читань | `GET /api/Loans/my`, вкладка «Історія» в кабінеті читача: книга, статус, дата видачі та дата повернення | Postman | виконано |
 
 ### Нефункціональні вимоги
 

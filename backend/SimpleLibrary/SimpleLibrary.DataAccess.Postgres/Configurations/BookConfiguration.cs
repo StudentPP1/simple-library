@@ -14,6 +14,7 @@ namespace SimpleLibrary.DataAccess.Postgres.Configurations
             builder.Property(b => b.Author).IsRequired().HasMaxLength(150);
             builder.Property(b => b.ISBN).HasMaxLength(20);
             builder.Property(b => b.Description).HasMaxLength(2000);
+            builder.Property(b => b.Price).HasPrecision(10, 2);
 
             builder.HasMany(b => b.Copies)
                    .WithOne(c => c.Book)

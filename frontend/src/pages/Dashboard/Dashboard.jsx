@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
 
+// Дата у форматі дд.мм.рррр або прочерк, якщо події не було (наприклад, скасоване бронювання не видавалося)
+const formatDate = (value) => (value ? new Date(value).toLocaleDateString('uk-UA') : '—');
+
 export default function Dashboard() {
   const [loans, setLoans] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -186,7 +189,8 @@ export default function Dashboard() {
                   <tr className="bg-[#FAF9F6] border-b border-[#E5E7E3] text-xs font-bold text-[#69766E] uppercase">
                     <th className="py-4 px-6">Книга</th>
                     <th className="py-4 px-6">Статус</th>
-                    <th className="py-4 px-6">Дата</th>
+                    <th className="py-4 px-6">Дата видачі</th>
+                    <th className="py-4 px-6">Дата повернення</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E5E7E3]">
@@ -200,11 +204,8 @@ export default function Dashboard() {
                           {loan.status === 'Returned' ? 'Повернено' : 'Скасовано'}
                         </span>
                       </td>
-                      <td className="py-4 px-6 text-xs text-[#69766E]">
-                        {loan.returnDate
-                          ? new Date(loan.returnDate).toLocaleDateString('uk-UA')
-                          : '—'}
-                      </td>
+                      <td className="py-4 px-6 text-xs text-[#69766E]">{formatDate(loan.issuedAt)}</td>
+                      <td className="py-4 px-6 text-xs text-[#69766E]">{formatDate(loan.returnedAt)}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -26,5 +26,18 @@ namespace SimpleLibrary.Core.DTOs.Requests
         public string? Description { get; init; }
 
         public int PublicationYear { get; init; }
+
+        /// <summary>
+        /// Ціна книги. Якщо не передати - стара ціна збережеться.
+        /// </summary>
+        [Range(typeof(decimal), "0", "100000", ErrorMessage = "Ціна має бути від 0 до 100000")]
+        public decimal? Price { get; init; }
+
+        /// <summary>
+        /// Нова кількість примірників у фонді. Якщо не передати - кількість не зміниться.
+        /// Під час зменшення списуються лише вільні примірники.
+        /// </summary>
+        [Range(1, 100, ErrorMessage = "Кількість примірників має бути від 1 до 100")]
+        public int? CopiesCount { get; init; }
     }
 }
